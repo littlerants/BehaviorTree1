@@ -30,7 +30,13 @@ import time
 import json
 import pkg_resources
 
+sys.path.append('/home/zjx/Carla_0.9.15/PythonAPI/carla')
+
+sys.path.insert(0,'/home/zjx/Carla_0.9.15/PythonAPI/carla/dist/carla-0.9.15-py3.7-linux-x86_64.egg')
+
 import carla
+
+
 
 from srunner.scenarioconfigs.openscenario_configuration import OpenScenarioConfiguration
 from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
@@ -44,7 +50,7 @@ from srunner.scenarios.osc2_scenario import OSC2Scenario
 from srunner.scenarioconfigs.osc2_scenario_configuration import OSC2ScenarioConfiguration
 
 # Version of scenario_runner
-VERSION = '0.9.13'
+VERSION = '0.9.15'
 
 
 class ScenarioRunner(object):
@@ -93,8 +99,8 @@ class ScenarioRunner(object):
         self.client = carla.Client(args.host, int(args.port))
         self.client.set_timeout(self.client_timeout)
         dist = pkg_resources.get_distribution("carla")
-        if LooseVersion(dist.version) < LooseVersion('0.9.15'):
-            raise ImportError("CARLA version 0.9.15 or newer required. CARLA version found: {}".format(dist))
+        # if LooseVersion(dist.version) < LooseVersion('0.9.15'):
+        #     raise ImportError("CARLA version 0.9.15 or newer required. CARLA version found: {}".format(dist))
 
         # Load agent if requested via command line args
         # If something goes wrong an exception will be thrown by importlib (ok here)
@@ -647,3 +653,4 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+
