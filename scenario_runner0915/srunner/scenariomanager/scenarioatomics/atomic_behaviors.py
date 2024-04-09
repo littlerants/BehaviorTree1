@@ -19,31 +19,27 @@ import copy
 import math
 import operator
 import os
-import time
 import subprocess
+import time
 from bisect import bisect_right
 
-import numpy as np
-from numpy import random
-import py_trees
-from py_trees.blackboard import Blackboard
-import networkx
-
 import carla
+import networkx
+import numpy as np
+import py_trees
+import srunner.tools as sr_tools
 from agents.navigation.basic_agent import BasicAgent
 from agents.navigation.constant_velocity_agent import ConstantVelocityAgent
 from agents.navigation.local_planner import RoadOption, LocalPlanner
 from agents.tools.misc import is_within_distance, get_speed
-
+from numpy import random
+from py_trees.blackboard import Blackboard
+from srunner.scenariomanager.actorcontrols.actor_control import ActorControl
 from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 from srunner.scenariomanager.carla_data_provider import calculate_velocity
-from srunner.scenariomanager.actorcontrols.actor_control import ActorControl
 from srunner.scenariomanager.timer import GameTime
 from srunner.tools.scenario_helper import detect_lane_obstacle
 from srunner.tools.scenario_helper import generate_target_waypoint_list_multilane
-
-
-import srunner.tools as sr_tools
 
 EPSILON = 0.001
 
@@ -88,8 +84,8 @@ def get_actor_control(actor):
 
     return control, actor_type
 
-
 class AtomicBehavior(py_trees.behaviour.Behaviour):
+
 
     """
     Base class for all atomic behaviors used to setup a scenario

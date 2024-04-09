@@ -13,9 +13,7 @@ from __future__ import print_function
 
 import operator
 import py_trees
-
 import carla
-
 from srunner.scenariomanager.scenarioatomics.atomic_trigger_conditions import (WaitForBlackboardVariable,
                                                                                InTimeToArrivalToLocation)
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import WaitForever

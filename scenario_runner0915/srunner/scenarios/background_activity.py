@@ -162,6 +162,7 @@ class Junction(object):
         return False
 
 
+
 class BackgroundBehavior(AtomicBehavior):
     """
     Handles the background activity
@@ -1031,7 +1032,7 @@ class BackgroundBehavior(AtomicBehavior):
             for lane_key in self._road_dict:
                 source = self._road_dict[lane_key]
 
-                # If no actors are found, let the last_location be ego's location 
+                # If no actors are found, let the last_location be ego's location
                 # to keep moving the source waypoint forward
                 if len(source.actors) == 0:
                     last_location = self._ego_wp.transform.location
@@ -1160,7 +1161,7 @@ class BackgroundBehavior(AtomicBehavior):
         All opposite lanes have actor sources that will continually create vehicles,
         creating the sensation of permanent traffic. The actor spawning will be done later on
         (_update_opposite_sources). These sources are at a (somewhat) fixed distance
-        from the ego, but they never entering junctions. 
+        from the ego, but they never entering junctions.
         """
         self._opposite_route_index = None
         if not self._junctions:

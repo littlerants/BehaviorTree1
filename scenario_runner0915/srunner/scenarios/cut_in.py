@@ -105,7 +105,7 @@ class CutIn(BasicScenario):
 
         # just_drive
         just_drive = py_trees.composites.Parallel(
-            "DrivingStraight", policy=py_t````rees.common.ParallelPolicy.SUCCESS_ON_ONE)
+            "DrivingStraight", policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ONE)
 
         car_driving = WaypointFollower(self.other_actors[0], self._velocity)
         just_drive.add_child(car_driving)
