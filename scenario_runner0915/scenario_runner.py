@@ -36,8 +36,6 @@ sys.path.insert(0,'/home/zjx/Carla_0.9.15/PythonAPI/carla/dist/carla-0.9.15-py3.
 
 import carla
 
-
-
 from srunner.scenarioconfigs.openscenario_configuration import OpenScenarioConfiguration
 from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 from srunner.scenariomanager.scenario_manager import ScenarioManager

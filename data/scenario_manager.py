@@ -13,7 +13,7 @@ It must not be modified and is for reference only!
 from __future__ import print_function
 import sys
 import time
-
+import carla
 import py_trees
 
 from srunner.autoagents.agent_wrapper import AgentWrapper
@@ -21,7 +21,7 @@ from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 from srunner.scenariomanager.result_writer import ResultOutputProvider
 from srunner.scenariomanager.timer import GameTime
 from srunner.scenariomanager.watchdog import Watchdog
-import carla
+
 
 class ScenarioManager(object):
 
@@ -106,12 +106,14 @@ class ScenarioManager(object):
         self.scenario_tree = self.scenario.scenario_tree
         self.ego_vehicles = scenario.ego_vehicles
         self.other_actors = scenario.other_actors
+        # print(self.other_actors)
 
         # To print the scenario tree uncomment the next line
-        # py_trees.display.render_dot_tree(self.scenario_tree)
+        py_trees.display.render_dot_tree(self.scenario_tree)
 
         if self._agent is not None:
             self._agent.setup_sensors(self.ego_vehicles[0], self._debug_mode)
+
     def _set_spector(self, location, world):
         spectator = world.get_spectator()
         transform = carla.Transform()
@@ -127,6 +129,7 @@ class ScenarioManager(object):
                 carla.Rotation(yaw=0, pitch=-90),
             )
         spectator.set_transform(bv_transform)
+
     def run_scenario(self):
         """
         Trigger the start of the scenario and wait for it to finish/fail
@@ -142,13 +145,13 @@ class ScenarioManager(object):
         while self._running:
             timestamp = None
             world = CarlaDataProvider.get_world()
+            self._set_spector(self.ego_vehicles[0].get_location(), world)
             if world:
                 snapshot = world.get_snapshot()
                 if snapshot:
                     timestamp = snapshot.timestamp
             if timestamp:
                 self._tick_scenario(timestamp)
-            self._set_spector(self.ego_vehicles[0].get_location(), world)
 
         self.cleanup()
 
@@ -225,6 +228,7 @@ class ScenarioManager(object):
         result = "SUCCESS"
 
         criteria = self.scenario.get_criteria()
+        print(criteria)
         if len(criteria) == 0:
             print("Nothing to analyze, this scenario has no criteria")
             return True
