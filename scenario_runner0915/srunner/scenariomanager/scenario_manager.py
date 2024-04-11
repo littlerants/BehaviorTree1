@@ -23,6 +23,10 @@ from srunner.scenariomanager.timer import GameTime
 from srunner.scenariomanager.watchdog import Watchdog
 import carla
 
+
+
+
+
 class ScenarioManager(object):
 
     """
@@ -112,6 +116,7 @@ class ScenarioManager(object):
 
         if self._agent is not None:
             self._agent.setup_sensors(self.ego_vehicles[0], self._debug_mode)
+
     def _set_spector(self, location, world):
         spectator = world.get_spectator()
         transform = carla.Transform()
@@ -127,6 +132,7 @@ class ScenarioManager(object):
                 carla.Rotation(yaw=0, pitch=-90),
             )
         spectator.set_transform(bv_transform)
+
     def run_scenario(self):
         """
         Trigger the start of the scenario and wait for it to finish/fail
@@ -149,7 +155,6 @@ class ScenarioManager(object):
             if timestamp:
                 self._tick_scenario(timestamp)
             self._set_spector(self.ego_vehicles[0].get_location(), world)
-
         self.cleanup()
 
         self.end_system_time = time.time()
@@ -182,8 +187,6 @@ class ScenarioManager(object):
 
             if self._agent is not None:
                 ego_action = self._agent()  # pylint: disable=not-callable
-
-            if self._agent is not None:
                 self.ego_vehicles[0].apply_control(ego_action)
 
             # Tick scenario
