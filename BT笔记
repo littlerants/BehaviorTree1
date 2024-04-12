@@ -1,0 +1,109 @@
+
+
+town10 scenarios:
+         <scenario name="ControlLoss_1" type="ControlLoss">
+            <trigger_point x="71.0" y="66.3" z="0.0" yaw="-179.9"/>
+         </scenario>
+         <scenario name="ControlLoss_2" type="ControlLoss">
+            <trigger_point x="19.4" y="66.3" z="0.0" yaw="-179.9"/>
+         </scenario>
+         <scenario name="DynamicObjectCrossing_1" type="DynamicObjectCrossing">
+            <trigger_point x="19.4" y="66.3" z="0.0" yaw="-179.9"/>
+            <distance value="35"/>
+            <direction value="right"/>
+            <blocker_model value="static.prop.advertisement"/>
+            <crossing_angle value="7"/>
+         </scenario>
+         <scenario name="ControlLoss_3" type="ControlLoss">
+            <trigger_point x="-41.7" y="49.4" z="0.0" yaw="-90.2"/>
+         </scenario>
+         <scenario name="DynamicObjectCrossing_2" type="DynamicObjectCrossing">
+            <trigger_point x="-41.8" y="-3.3" z="0.0" yaw="-90.2"/>
+            <distance value="35"/>
+            <direction value="right"/>
+            <blocker_model value="static.prop.advertisement"/>
+            <crossing_angle value="8"/>
+         </scenario>
+         <scenario name="HardBreakRoute_1" type="HardBreakRoute">
+            <trigger_point x="33.3" y="-57.4" z="0.0" yaw="360.0"/>
+         </scenario>
+         <scenario name="HardBreakRoute_2" type="HardBreakRoute">
+            <trigger_point x="88.3" y="-48.5" z="0.0" yaw="42.3"/>
+         </scenario>
+         <scenario name="BlockedIntersection_1" type="BlockedIntersection">
+            <trigger_point x="99.4" y="-15.6" z="0.0" yaw="89.8"/>
+         </scenario>
+         <scenario name="ControlLoss_4" type="ControlLoss">
+            <trigger_point x="15.2" y="13.2" z="0.0" yaw="180.2"/>
+         </scenario>
+         
+         
+         
+背景车辆生成代码汇总：
+
+在CarlaDataProvider类中，定义了所有在carla世界中生成方法：
+
+一共有四种方法：
+
+		 request_new_batch_actors    
+		 
+		 request_new_actors
+		 
+		 request_new_actor
+		 
+		 register_actors
+
+
+
+
+         
+在background_activity 中，使用了两种生成方法，分别是request_new_batch_actors、request_new_actor，在这两种方法之上，BA又包装了三种生成方式，如下：
+         
+_spawn_actors -> request_new_batch_actors:
+
+         initialise
+		 _initialise_road_behavior
+		 	_spawn_actors
+         update
+		 _monitor_incoming_junctions
+		 	_initialise_junction_exits
+		 		_spawn_actors
+         
+        
+        	_monitor_topology_changes
+        			_spawn_actors    
+         
+
+_spawn_actor  ->  request_new_actor:
+
+	_update_parameters
+		_readd_road_lane
+
+
+_spawn_source_actor   ->   request_new_actor:
+
+	update
+		_update_road_sources
+			_spawn_source_actor
+         
+         	_update_junction_sources
+         		_spawn_source_actor
+         
+         	_update_opposite_sources
+         		_spawn_source_actor
+         
+         
+         
+
+           
+         
+
+		 
+		 
+		 
+		 
+		 
+
+         
+         
+         

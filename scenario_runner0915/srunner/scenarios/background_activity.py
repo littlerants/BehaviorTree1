@@ -296,11 +296,13 @@ class BackgroundBehavior(AtomicBehavior):
         ego_wp = self._route[0]
         same_dir_wps = get_same_dir_lanes(ego_wp)
 
-        self._initialise_road_behavior(same_dir_wps)
+        # self._initialise_road_behavior(same_dir_wps)
         self._initialise_opposite_sources()
         self._initialise_road_checker()
 
     def update(self):
+
+        return
         prev_ego_index = self._route_index
 
         # Check if the TM destroyed an actor
@@ -316,23 +318,23 @@ class BackgroundBehavior(AtomicBehavior):
         # Update ego state
         if self._ego_state == EGO_JUNCTION:
             self._monitor_ego_junction_exit()
-        self._monitor_incoming_junctions()
+        # self._monitor_incoming_junctions()
 
         # Update_actors
         if self._ego_state == EGO_JUNCTION:
             self._update_junction_actors()
-            self._update_junction_sources()
+            # self._update_junction_sources()
         else:
             self._update_road_actors()
 
             self._move_road_sources(prev_ego_index)
-            self._update_road_sources()
+            # self._update_road_sources()
 
-            self._monitor_topology_changes(prev_ego_index)
+            # self._monitor_topology_changes(prev_ego_index)
             self._monitor_road_changes(prev_ego_index)
 
             self._move_opposite_sources(prev_ego_index)
-            self._update_opposite_sources()
+            # self._update_opposite_sources()
 
         # Update non junction sources
         self._update_opposite_actors()
