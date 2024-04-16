@@ -7,7 +7,7 @@
 """
 Scenario spawning elements to make the town dynamic and interesting
 """
-import time
+
 from collections import OrderedDict
 import py_trees
 
@@ -170,7 +170,7 @@ class BackgroundBehavior(AtomicBehavior):
     Handles the background activity
     """
 
-    def __init__(self, ego_actor, debug=False, name="BackgroundBehavior"):
+    def __init__(self, ego_actor, route, debug=False, name="BackgroundBehavior"):
         """
         Setup class members
         """
@@ -193,7 +193,7 @@ class BackgroundBehavior(AtomicBehavior):
         self._ego_key = ""
         self._route_index = 0
         # 将route信息进行解析，初始化若干参数
-        # self._get_route_data(route)
+        self._get_route_data(route)
         self._actors_speed_perc = {}  # Dictionary actor - percentage
         self._all_actors = []
         self._lane_width_threshold = 2.25  # Used to stop some behaviors at narrow lanes to avoid problems [m]
@@ -263,10 +263,6 @@ class BackgroundBehavior(AtomicBehavior):
         self._scenario_junction_entry_distance = self._road_spawn_dist  # Min distance between vehicles and ego
         self._scenario_removed_lane = False  # Flag indicating a scenario has removed a lane
         self._scenario_remove_lane_offset = 0
-        self.fram = 1
-        self.other_vecs = []
-        self.client = carla.Client("localhost", 2000)
-        self.parkinglot = carla.Location(x=0,y=0,z=0)
 
     def _get_route_data(self, route):
         """Extract the information from the route"""
@@ -300,76 +296,15 @@ class BackgroundBehavior(AtomicBehavior):
 
     def initialise(self):
         """Creates the background activity actors. Pressuposes that the ego is at a road"""
-        # self._create_junction_dict()
-        # ego_wp = self._route[0]
-        # 获取主车初始位置
-        ego_wp = self._map.get_waypoint(self._ego_actor.get_location())
+        self._create_junction_dict()
+        ego_wp = self._route[0]
         same_dir_wps = get_same_dir_lanes(ego_wp)
 
         self._initialise_road_behavior(same_dir_wps)
-        # self._initialise_opposite_sources()
-        # self._initialise_road_checker()
+        self._initialise_opposite_sources()
+        self._initialise_road_checker()
 
     def update(self):
-        flag = True
-        if flag:
-            self.fram += 1
-            if self.fram == 300 :
-                self._ego_actor.set_simulate_physics(False)
-                self._ego_actor.set_location(carla.Location(x=-510.739, y=175,z=0) )
-            if self.fram == 1000 :
-                print("len(self.other_vecs:",len(self.other_vecs))
-                start = time.time()
-                command = []
-                for i in self.other_vecs:
-                    # i.set_simulate_physics(False)
-                    # i.set_location(carla.Location(x=-510.739, y=175,z=0) )
-                    command.append( carla.command.SetSimulatePhysics(i.id, False))
-                    command.append( carla.command.ApplyTransform(i.id,carla.Transform(carla.Location(x=-510.739, y=175,z=0))   )  )
-                    command.append( carla.command.ApplyTransform(i.id,carla.Transform(self.parkinglot  )   )  )
-                self.client.apply_batch(command)
-                dur_time = time.time() - start
-                print("physic false and set location:",dur_time)
-            if self.fram == 1500:
-                print("fram:",self.fram)
-                ego_wp = self._map.get_waypoint(self._ego_actor.get_location())
-                same_dir_wps = get_same_dir_lanes(ego_wp)
-                print("same_dir_wps:",len(same_dir_wps))
-                start = time.time()
-                var = 0
-                print("len(self.other_vecs):",len(self.other_vecs))
-                # for i in range(len(self.other_vecs)):
-                i = 0
-                command = []
-                while i < 16:
-
-                    # print(self.other_vecs[0])
-                    # -510.102" y="109.293"
-                    # next_wps = ego_wp.next(ego_road_spawn_dist)
-                    for j in range(4):
-                        # self.other_vecs[i].set_location(same_dir_wps[j].next(self._road_spawn_dist + var)[0].transform.location)
-                        # self.other_vecs[i].set_simulate_physics(True)
-                        command.append(carla.command.SetSimulatePhysics(self.other_vecs[i].id, True))
-                        command.append(carla.command.ApplyTransform(self.other_vecs[i].id,same_dir_wps[j].next(self._road_spawn_dist + var)[0].transform))
-
-                        i += 1
-                        # print("i,j:",i,j)
-                    var += 10
-                self.client.apply_batch(command)
-                dur_time = time.time() - start
-                print("physic true and set location time:",dur_time)
-            if self.fram == 5500:
-                destroy_list = []
-                start = time.time()
-                for i in self.other_vecs:
-                    destroy_list.append(carla.command.DestroyActor(i))
-                self.client.apply_batch(destroy_list)  # 批量销毁车辆
-                dur_time = time.time() - start
-                print("destroy vecs time:",dur_time)
-        # else:
-
-
-        return py_trees.common.Status.RUNNING
 
         prev_ego_index = self._route_index
 
@@ -1197,9 +1132,8 @@ class BackgroundBehavior(AtomicBehavior):
         If there aren't enough actors behind, road sources will be created that will do so later on
         """
         # Vehicles in front
-
-        spawn_wps = []
         for wp in road_wps:
+            spawn_wps = []
 
             # Front spawn points
             next_wp = wp
@@ -1215,7 +1149,6 @@ class BackgroundBehavior(AtomicBehavior):
             # Back spawn points
             source_dist = 0
             prev_wp = wp
-            print("spawn_wps:", spawn_wps)
             for _ in range(self._road_back_vehicles):
                 prev_wps = prev_wp.previous(self._road_spawn_dist)
                 if len(prev_wps) != 1 or self._is_junction(prev_wps[0]):
@@ -1225,19 +1158,12 @@ class BackgroundBehavior(AtomicBehavior):
                 source_dist += self._road_spawn_dist
 
             # Spawn actors
-            # actors = self._spawn_actors(spawn_wps)
+            actors = self._spawn_actors(spawn_wps)
 
-            # for i in actors:
-            #     self.other_vecs.append( i)
-            # self._road_dict[get_lane_key(wp)] = Source(
-            #     prev_wp, actors, active=self._active_road_sources
-            # )
-        start = time.time()
-        actors = self._spawn_actors(spawn_wps)
-        for i in actors:
-            self.other_vecs.append( i)
-        dur_time = time.time() - start
-        print("spawn time:",dur_time)
+            self._road_dict[get_lane_key(wp)] = Source(
+                prev_wp, actors, active=self._active_road_sources
+            )
+
     def _initialise_opposite_sources(self):
         """
         All opposite lanes have actor sources that will continually create vehicles,
@@ -1418,10 +1344,6 @@ class BackgroundBehavior(AtomicBehavior):
                         self._actors_speed_perc[actor] = 0
                     self._add_actor_dict_element(actor_dict, actor, at_oppo_entry_lane=at_oppo_entry_lane)
                     source.actors.append(actor)
-
-    # def _monitor_ego_front_vecs(self):
-    #
-    #     for _ in range(self._road_front_vehicles):
 
     def _monitor_topology_changes(self, prev_index):
         """

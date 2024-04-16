@@ -65,27 +65,18 @@ class RouteScenario(BasicScenario):
 
         self.config = config
         # 根据途径点，生成一条轨迹，并初始化agent全局路径
-        # self.route = self._get_route(config)
-        # 获取主车出生点
-        self.SpawnPoint = world.get_map().get_waypoint(carla.Location(x=-510.102, y=109.293, z=0 ))
-        # self.SpawnPoint = config.keypoints[0]
-
+        self.route = self._get_route(config)
         # 过滤掉无用的场景
-        sampled_scenario_definitions = []
-        # sampled_scenario_definitions = self._filter_scenarios(config.scenario_configs)
+        sampled_scenario_definitions = self._filter_scenarios(config.scenario_configs)
         # 生成主车
         ego_vehicle = self._spawn_ego_vehicle()
-        ego_vehicle.set_autopilot(True)
         # 估计超时时间
-        # self.timeout = self._estimate_route_timeout()
-        # 超时时间暂定200
-        self.timeout = 200
+        self.timeout = self._estimate_route_timeout()
 
         if debug_mode:
-            self._draw_waypoints(world, self.SpawnPoint , vertical_shift=0.1, size=0.1, persistency=self.timeout, downsample=5)
+            self._draw_waypoints(world, self.route, vertical_shift=0.1, size=0.1, persistency=self.timeout, downsample=5)
 
         # 这里会将xml 中所有scenario 元素根据scenario 文件包中所有的类初始化为对象实例，存入list_scenarios中
-        # 为空，因为xml中没有设置scenario
         self._build_scenarios(
             world, ego_vehicle, sampled_scenario_definitions, timeout=self.timeout, debug=debug_mode > 0
         )
@@ -133,8 +124,7 @@ class RouteScenario(BasicScenario):
 
     def _spawn_ego_vehicle(self):
         """Spawn the ego vehicle at the first waypoint of the route"""
-        # elevate_transform = self.route[0][0]
-        elevate_transform = self.SpawnPoint.transform
+        elevate_transform = self.route[0][0]
         elevate_transform.location.z += 0.5
 
         ego_vehicle = CarlaDataProvider.request_new_actor('vehicle.lincoln.mkz_2017',
@@ -294,12 +284,12 @@ class RouteScenario(BasicScenario):
                                         scenario.config.trigger_points[0].location])
 
         # Add the behavior that manages the scenario trigger conditions
-        # scenario_triggerer = ScenarioTriggerer(
-        #     self.ego_vehicles[0], self.route, blackboard_list, scenario_trigger_distance)
-        # behavior.add_child(scenario_triggerer)  # Tick the ScenarioTriggerer before the scenarios
+        scenario_triggerer = ScenarioTriggerer(
+            self.ego_vehicles[0], self.route, blackboard_list, scenario_trigger_distance)
+        behavior.add_child(scenario_triggerer)  # Tick the ScenarioTriggerer before the scenarios
 
         # Add the Background Activity
-        behavior.add_child(BackgroundBehavior(self.ego_vehicles[0], name="BackgroundActivity"))
+        behavior.add_child(BackgroundBehavior(self.ego_vehicles[0], self.route, name="BackgroundActivity"))
 
         behavior.add_children(scenario_behaviors)
         return behavior
@@ -358,8 +348,7 @@ class RouteScenario(BasicScenario):
         """
         Create the timeout behavior
         """
-        return None
-        # return RouteTimeoutBehavior(self.ego_vehicles[0], self.route)
+        return RouteTimeoutBehavior(self.ego_vehicles[0], self.route)
 
     def _initialize_environment(self, world):
         """

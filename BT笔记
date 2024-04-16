@@ -37,7 +37,7 @@ town10 scenarios:
             <trigger_point x="15.2" y="13.2" z="0.0" yaw="180.2"/>
          </scenario>
          
-         
+         <position x="-0.8" y="13.2" z="0.0"/>
          
 背景车辆生成代码汇总：
 
@@ -78,6 +78,7 @@ _spawn_actor  ->  request_new_actor:
 
 	_update_parameters
 		_readd_road_lane
+			_spawn_actor
 
 
 _spawn_source_actor   ->   request_new_actor:
@@ -92,10 +93,60 @@ _spawn_source_actor   ->   request_new_actor:
          	_update_opposite_sources
          		_spawn_source_actor
          
-         
+
+
+
+########################################################
+self._road_dict
+	initialise
+		_initialise_road_behavior
+			self._road_dict
+
+
+
+	update
+		EGO_JUNCTION: _monitor_incoming_junctions
+			_switch_to_junction_mode
+				self._road_dict.clear()
+
+		EGO_JUNCTION:_monitor_ego_junction_exit
+			_end_junction_behavior
+				self._road_dict
+
+
+
+		ROAD:
+			_monitor_topology_changes
+				self._road_dict	
+	
+			_monitor_road_changes
+
+
+
+
          
 
-           
+BackgroundBehavior，其位置在sruuner的scenarios下面，但是其本质上是一个behavior，在route_scenario中被初始化
+
+较为重要的有以下几个函数：
+
+initialise():
+在新一轮活动开始之前执行用户指定的指令。该方法会被py_trees.behaviour.Behaviour.tick()自动调用，只要行为树节点不为Running，即状态转为RUNNING时被调用
+
+
+update()	
+
+1.  initialise
+
+@  _initialise_road_behavior
+
+初始化npc车辆，
+
+
+
+
+self._ego_actor.get_location()
+
          
 
 		 

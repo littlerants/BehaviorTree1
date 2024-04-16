@@ -41,6 +41,7 @@ from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 from srunner.scenariomanager.scenario_manager import ScenarioManager
 from srunner.scenarios.open_scenario import OpenScenario
 from srunner.scenarios.route_scenario import RouteScenario
+
 from srunner.tools.scenario_parser import ScenarioConfigurationParser
 from srunner.tools.route_parser import RouteParser
 from srunner.tools.osc2_helper import OSC2Helper
@@ -400,12 +401,14 @@ class ScenarioRunner(object):
                 scenario = RouteScenario(world=self.world,
                                          config=config,
                                          debug_mode=self._args.debug)
+
             elif self._args.openscenario2:
                 scenario = OSC2Scenario(world=self.world,
                                         ego_vehicles=self.ego_vehicles,
                                         config=config,
                                         osc2_file=self._args.openscenario2,
                                         timeout=100000)
+
             else:
                 scenario_class = self._get_scenario_class_or_fail(config.type)
                 scenario = scenario_class(world=self.world,
@@ -413,6 +416,7 @@ class ScenarioRunner(object):
                                           config=config,
                                           randomize=self._args.randomize,
                                           debug_mode=self._args.debug)
+
         except Exception as exception:                  # pylint: disable=broad-except
             print("The scenario cannot be loaded")
             traceback.print_exc()
@@ -578,6 +582,7 @@ def main():
     parser.add_argument('--openscenario2', help='Provide an openscenario2 definition')
     parser.add_argument('--route', help='Run a route as a scenario', type=str)
     parser.add_argument('--route-id', help='Run a specific route inside that \'route\' file', default='', type=str)
+    parser.add_argument('--ba', help='Run a ba as a scenario', type=str)
     parser.add_argument(
         '--agent', help="Agent used to execute the route. Not compatible with non-route-based scenarios.")
     parser.add_argument('--agentConfig', type=str, help="Path to Agent's configuration file", default="")

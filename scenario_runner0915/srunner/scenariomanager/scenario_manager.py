@@ -144,7 +144,7 @@ class ScenarioManager(object):
         self._watchdog = Watchdog(float(self._timeout))
         self._watchdog.start()
         self._running = True
-
+        flag = True
         while self._running:
             timestamp = None
             world = CarlaDataProvider.get_world()
@@ -154,7 +154,9 @@ class ScenarioManager(object):
                     timestamp = snapshot.timestamp
             if timestamp:
                 self._tick_scenario(timestamp)
-            self._set_spector(self.ego_vehicles[0].get_location(), world)
+            if flag:
+                self._set_spector(self.ego_vehicles[0].get_location(), world)
+                flag = False
         self.cleanup()
 
         self.end_system_time = time.time()
