@@ -123,12 +123,12 @@ class ScenarioManager(object):
 
         if location is None:
             bv_transform = carla.Transform(
-                transform.location + carla.Location(z=100),
+                transform.location + carla.Location(z=60),
                 carla.Rotation(yaw=0, pitch=-90, roll=0),
             )
         else:
             bv_transform = carla.Transform(
-                transform.location + location + carla.Location(z=80),
+                transform.location + location + carla.Location(z=300),
                 carla.Rotation(yaw=0, pitch=-90),
             )
         spectator.set_transform(bv_transform)
@@ -156,7 +156,7 @@ class ScenarioManager(object):
                 self._tick_scenario(timestamp)
             if flag:
                 self._set_spector(self.ego_vehicles[0].get_location(), world)
-                flag = False
+                # flag = False
         self.cleanup()
 
         self.end_system_time = time.time()

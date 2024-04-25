@@ -39,7 +39,8 @@ from srunner.scenariomanager.scenarioatomics.atomic_criteria import (CollisionTe
                                                                      MinimumSpeedRouteTest)
 
 from srunner.scenarios.basic_scenario import BasicScenario
-from srunner.scenarios.background_activity import BackgroundBehavior
+# from srunner.scenarios.background_activity import BackgroundBehavior
+from srunner.scenarios.BAtrafficflow import BAtrafficflow
 from srunner.scenariomanager.weather_sim import RouteWeatherBehavior
 from srunner.scenariomanager.lights_sim import RouteLightsBehavior
 from srunner.scenariomanager.timer import RouteTimeoutBehavior
@@ -67,8 +68,8 @@ class RouteScenario(BasicScenario):
         # 根据途径点，生成一条轨迹，并初始化agent全局路径
         # self.route = self._get_route(config)
         # 获取主车出生点
-        self.SpawnPoint = world.get_map().get_waypoint(carla.Location(x=-510.102, y=109.293, z=0 ))
-        # self.SpawnPoint = config.keypoints[0]
+        # self.SpawnPoint = world.get_map().get_waypoint(carla.Location(x=-4224.37, y=66.293, z=0 ))
+        self.SpawnPoint = world.get_map().get_waypoint(config.keypoints[0])
 
         # 过滤掉无用的场景
         sampled_scenario_definitions = []
@@ -299,7 +300,8 @@ class RouteScenario(BasicScenario):
         # behavior.add_child(scenario_triggerer)  # Tick the ScenarioTriggerer before the scenarios
 
         # Add the Background Activity
-        behavior.add_child(BackgroundBehavior(self.ego_vehicles[0], name="BackgroundActivity"))
+        # behavior.add_child(BackgroundBehavior(self.ego_vehicles[0], name="BackgroundActivity"))
+        behavior.add_child(BAtrafficflow(self.ego_vehicles[0], name="BAtrifficflow"))
 
         behavior.add_children(scenario_behaviors)
         return behavior

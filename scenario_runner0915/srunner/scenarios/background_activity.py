@@ -10,9 +10,9 @@ Scenario spawning elements to make the town dynamic and interesting
 import time
 from collections import OrderedDict
 import py_trees
-
+import random
 import carla
-
+import numpy as np
 from agents.navigation.local_planner import RoadOption
 
 from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
@@ -165,16 +165,16 @@ class Junction(object):
         return False
 
 
-class BackgroundBehavior(AtomicBehavior):
+class BackgroundBehavior1(AtomicBehavior):
     """
     Handles the background activity
     """
 
-    def __init__(self, ego_actor, debug=False, name="BackgroundBehavior"):
+    def __init__(self, ego_actor, debug=False, name="BackgroundBehavior1"):
         """
         Setup class members
         """
-        super(BackgroundBehavior, self).__init__(name)
+        super(BackgroundBehavior1, self).__init__(name)
         self.debug = debug
         self._map = CarlaDataProvider.get_map()
         self._world = CarlaDataProvider.get_world()
@@ -205,7 +205,7 @@ class BackgroundBehavior(AtomicBehavior):
         self._fake_lane_pair_keys = []
 
         # Initialisation values
-        self._vehicle_lane_change = False
+        self._vehicle_lane_change = True
         self._vehicle_lights = True
         self._vehicle_leading_distance = 10
         self._vehicle_offset = 0.1
@@ -215,7 +215,7 @@ class BackgroundBehavior(AtomicBehavior):
         self._road_checker_index = 0
 
         self._road_front_vehicles = 2  # Amount of vehicles in front of the ego
-        self._road_back_vehicles = 2  # Amount of vehicles behind the ego
+        self._road_back_vehicles = 2 # Amount of vehicles behind the ego
         self._radius_increase_ratio = 1.7  # Meters the radius increases per m/s of the ego
 
         self._base_junction_detection = 30
@@ -266,7 +266,20 @@ class BackgroundBehavior(AtomicBehavior):
         self.fram = 1
         self.other_vecs = []
         self.client = carla.Client("localhost", 2000)
-        self.parkinglot = carla.Location(x=0,y=0,z=0)
+        self.tm = self.client.get_trafficmanager()
+        # carla.Location(x=-510.739, y=100, z=10)
+        self.parkinglot = carla.Location(x=-510.739, y=100, z=10)
+        self.parking_vecs = []
+        self._vehicle_list = []
+        self._destroy_list = []
+
+        self.max_vecs =50
+        self.max_radius = 200
+        self.front_traffic_bound = 15
+        self.front_traffic_bound_1 = 15
+        self.bake_traffic_bound = 15
+        self.bake_traffic_bound_1 = 15
+        self.apll_spawn_points = self._world .get_map().get_spawn_points()
 
     def _get_route_data(self, route):
         """Extract the information from the route"""
@@ -305,70 +318,91 @@ class BackgroundBehavior(AtomicBehavior):
         # 获取主车初始位置
         ego_wp = self._map.get_waypoint(self._ego_actor.get_location())
         same_dir_wps = get_same_dir_lanes(ego_wp)
+        opposite_dir_wps = get_opposite_dir_lanes(ego_wp)
+        # # 初始化50辆车
+        self._initialise_road_behavior(same_dir_wps + opposite_dir_wps)
 
-        self._initialise_road_behavior(same_dir_wps)
+        # 初始化50辆车
+        # y = 100
+        # for i in range(20):
+
+            # y += 10
+
+        # CarlaDataProvider.request_new_batch_actors_physics_toparkinglot('vehicle.*',amount=1,spawn_point=carla.Transform(carla.Location(x=-510.739, y=175,z=0) ), autopilot=False    ,)
+
         # self._initialise_opposite_sources()
         # self._initialise_road_checker()
+        # CarlaDataProvider.request_new_batch_actors_physics_toparkinglot()
 
+    def get_local_location(self,vehicle, location) -> carla.Location:
+        """将全局坐标系下的坐标转到局部坐标系下
+
+        Args:
+            location (Location): 待变换的全局坐标系坐标
+        """
+        res = np.array(vehicle.get_transform().get_inverse_matrix()).dot(
+            np.array(
+                [location.x, location.y, location.z, 1]
+            )
+        )
+        return carla.Location(x=res[0], y=res[1], z=res[2])
     def update(self):
         flag = True
-        if flag:
-            self.fram += 1
-            if self.fram == 300 :
-                self._ego_actor.set_simulate_physics(False)
-                self._ego_actor.set_location(carla.Location(x=-510.739, y=175,z=0) )
-            if self.fram == 1000 :
-                print("len(self.other_vecs:",len(self.other_vecs))
-                start = time.time()
-                command = []
-                for i in self.other_vecs:
-                    # i.set_simulate_physics(False)
-                    # i.set_location(carla.Location(x=-510.739, y=175,z=0) )
-                    command.append( carla.command.SetSimulatePhysics(i.id, False))
-                    command.append( carla.command.ApplyTransform(i.id,carla.Transform(carla.Location(x=-510.739, y=175,z=0))   )  )
-                    command.append( carla.command.ApplyTransform(i.id,carla.Transform(self.parkinglot  )   )  )
-                self.client.apply_batch(command)
-                dur_time = time.time() - start
-                print("physic false and set location:",dur_time)
-            if self.fram == 1500:
-                print("fram:",self.fram)
-                ego_wp = self._map.get_waypoint(self._ego_actor.get_location())
+        ego_wp = self._map.get_waypoint(self._ego_actor.get_location())
+        # print("ego_wp:",ego_wp.transform.location,ego_wp.transform.rotation,self._ego_actor.get_velocity())
+        # if self.fram == 300 :
+        #     self._ego_actor.set_simulate_physics(False)
+        #     self._ego_actor.set_location(carla.Location(x=-407.739, y=31,z=0) )
+        self.fram += 1
+        start = time.time()
+        if flag and self.fram % 5 == 0:
+        # if True:
+            destroy_indexs = []
+            front_tmpmax = 0
+            opp_front_tmpmax = 0
+            bake_tmpmax = 0
+            opp_bake_tmpmax = 0
+            if self.fram % 100 == 0:
+                for i in range(len(self._vehicle_list)):
+                    dist = self._vehicle_list[i].get_location().distance(ego_wp.transform.location)
+                    vec_wp = self._map.get_waypoint(self._vehicle_list[i].get_location())
+                    # 每过一千帧，删除车流车头慢车
+                    if flag and self.fram % 1000 == 0 and dist > self.max_radius * 0.7:
+                        destroy_indexs.append( self._vehicle_list[i].id )
+                        self._destroy_list.append(carla.command.DestroyActor(self._vehicle_list[i]))
+                    if dist > self.max_radius:  # 如果车辆与给定坐标的距离大于半径
+                        destroy_indexs.append( self._vehicle_list[i].id )
+                        self._destroy_list.append(carla.command.DestroyActor(self._vehicle_list[i]))
+                    # 更新前后距离
+                    elif self.get_local_location(self._ego_actor, self._vehicle_list[i].get_location()).x > 0 and  dist > front_tmpmax and ego_wp.lane_id * vec_wp.lane_id > 0  :
+                        front_tmpmax= dist
+                    elif self.get_local_location(self._ego_actor, self._vehicle_list[i].get_location()).x > 0 and  dist > opp_front_tmpmax and ego_wp.lane_id * vec_wp.lane_id <  0  :
+                        opp_front_tmpmax= dist
+                    elif self.get_local_location(self._ego_actor, self._vehicle_list[i].get_location()).x <  0 and  dist > bake_tmpmax and ego_wp.lane_id * vec_wp.lane_id > 0 :
+                        bake_tmpmax = dist
+                    elif self.get_local_location(self._ego_actor, self._vehicle_list[i].get_location()).x <  0 and  dist > opp_bake_tmpmax and ego_wp.lane_id * vec_wp.lane_id <  0  :
+                        opp_bake_tmpmax = dist
+
+                self.front_traffic_bound = front_tmpmax + 30
+                self.front_traffic_bound_1 = opp_front_tmpmax + 30
+                self.bake_traffic_bound = bake_tmpmax + 30
+                self.bake_traffic_bound_1 = opp_bake_tmpmax + 30
+            print('bound dist:',self.front_traffic_bound,self.front_traffic_bound_1,self.bake_traffic_bound,self.bake_traffic_bound_1)
+            if  len(destroy_indexs) > 0:
+                self.client.apply_batch(self._destroy_list)
+                self._vehicle_list = list(filter(  lambda  x: x.id not in destroy_indexs, self._vehicle_list  ))
+
+            # 补充车辆
+            print("len vehicle list:", len(self._vehicle_list))
+            if self.fram % 100 == 0 and  len(self._vehicle_list) <= self.max_vecs:
                 same_dir_wps = get_same_dir_lanes(ego_wp)
-                print("same_dir_wps:",len(same_dir_wps))
-                start = time.time()
-                var = 0
-                print("len(self.other_vecs):",len(self.other_vecs))
-                # for i in range(len(self.other_vecs)):
-                i = 0
-                command = []
-                while i < 16:
-
-                    # print(self.other_vecs[0])
-                    # -510.102" y="109.293"
-                    # next_wps = ego_wp.next(ego_road_spawn_dist)
-                    for j in range(4):
-                        # self.other_vecs[i].set_location(same_dir_wps[j].next(self._road_spawn_dist + var)[0].transform.location)
-                        # self.other_vecs[i].set_simulate_physics(True)
-                        command.append(carla.command.SetSimulatePhysics(self.other_vecs[i].id, True))
-                        command.append(carla.command.ApplyTransform(self.other_vecs[i].id,same_dir_wps[j].next(self._road_spawn_dist + var)[0].transform))
-
-                        i += 1
-                        # print("i,j:",i,j)
-                    var += 10
-                self.client.apply_batch(command)
-                dur_time = time.time() - start
-                print("physic true and set location time:",dur_time)
-            if self.fram == 5500:
-                destroy_list = []
-                start = time.time()
-                for i in self.other_vecs:
-                    destroy_list.append(carla.command.DestroyActor(i))
-                self.client.apply_batch(destroy_list)  # 批量销毁车辆
-                dur_time = time.time() - start
-                print("destroy vecs time:",dur_time)
-        # else:
-
-
+                opposite_dir_wps = get_opposite_dir_lanes(ego_wp)
+                # spawn_wps = list(set(same_dir_wps).union(set( opposite_dir_wps ) )  )
+                self._add_road_vecs(same_dir_wps,opposite_dir_wps,True)
+                # self._initialise_road_behavior(same_dir_wps,True)
+        durtime1 = time.time() - start
+        if durtime1 > 0.001:
+            print("remove outof radis durtime",durtime1)
         return py_trees.common.Status.RUNNING
 
         prev_ego_index = self._route_index
@@ -1189,8 +1223,118 @@ class BackgroundBehavior(AtomicBehavior):
     ################################
     ## Behavior related functions ##
     ################################
+    def _add_road_vecs(self,same_dir_wps, opposite_dir_wps,rdm=False):
+        spawn_wps = []
+        start = time.time()
+        for wp in same_dir_wps:
+            # print("self.front_traffic_bound and bake :",self.front_traffic_bound,self.bake_traffic_bound)
+            # print("self.bake_traffic_bound:",self.bake_traffic_bound)
+            # Front spawn points
+            next_wp = wp
+            # self._road_front_vehicles= 2
+            # for _ in range(self._road_front_vehicles):
+            # 控制生成车辆车距
+            speed_dist = self.get_speed()
+            offset = 0
+            for _ in range(3):
+                # self._road_spawn_dist = 15
+                next_wps = next_wp.next(self.front_traffic_bound + self._road_spawn_dist + random.randint(0,4)*3 + speed_dist * 2 + offset  )
+                offset += 20
+                dist = next_wps[0].transform.location.distance(self._ego_actor.get_location())
+                print("front spawn vec dist: ", dist)
+                if dist > self.max_radius:
+                    break
+                if len(next_wps) != 1 or self._is_junction(next_wps[0]):
+                    break  # Stop when there's no next or found a junction
+                next_wp = next_wps[0]
+                spawn_wps.insert(0, next_wp)
+            prev_wp = wp
+            # for _ in range(self._road_back_vehicles):
+            offset = 0
+            for _ in range(6):
+                prev_wps = prev_wp.previous(self.front_traffic_bound + self._road_spawn_dist+ random.randint(0,4)*3 + speed_dist*1.2 + offset   )
+                if len(prev_wps) <= 0:
+                    break
+                offset +=20
+                dist = prev_wps[0].transform.location.distance(self._ego_actor.get_location())
+                # print("bake spawn vec dist: ",dist)
+                if dist > self.max_radius:
+                    break
+                if len(prev_wps) != 1 or self._is_junction(prev_wps[0]):
+                    break  # Stop when there's no next or found a junction
+                prev_wp = prev_wps[0]
+                spawn_wps.append(prev_wp)
+        opp_spawn_wps = []
+        for wp in opposite_dir_wps:
+        #     next_wp = wp
+        #     # 控制生成车辆车距
+        #     for _ in range(3):
+        #         # self._road_spawn_dist = 15
+        #         next_wps = next_wp.next( self.bake_traffic_bound_1 +  self._road_spawn_dist + random.randint(5,10)   )
+        #         dist = next_wps[0].transform.location.distance(self._ego_actor.get_location())
+        #         print("front spawn vec dist: ", dist)
+        #         if dist > self.max_radius:
+        #             break
+        #         if len(next_wps) != 1 or self._is_junction(next_wps[0]):
+        #             break  # Stop when there's no next or found a junction
+        #         next_wp = next_wps[0]
+        #
+        #         opp_spawn_wps.insert(0, next_wp)
 
-    def _initialise_road_behavior(self, road_wps):
+            prev_wp = wp
+            # for _ in range(self._road_back_vehicles):
+            offset = 0
+            for _ in range(3):
+                prev_wps = prev_wp.previous(  self.front_traffic_bound_1 + self._road_spawn_dist+ random.randint(0,4)*3 + offset   )
+                if len(prev_wps) <= 0:
+                    break
+                offset += 20
+                dist = prev_wps[0].transform.location.distance(self._ego_actor.get_location())
+                # print("bake spawn vec dist: ",dist)
+                if dist > self.max_radius:
+                    break
+                if len(prev_wps) != 1 or self._is_junction(prev_wps[0]):
+                    break  # Stop when there's no next or found a junction
+                prev_wp = prev_wps[0]
+                opp_spawn_wps.append(prev_wp)
+        spawn_points_filtered = []
+        num = 0
+        for i, around_spawn_point in enumerate(self.apll_spawn_points):  # 遍历所有出生点
+            # print("---------------------------------------------")
+            # print(self._map.get_waypoint(around_spawn_point.location).road_id )
+            # print(same_dir_wps[0].road_id)
+            # print(around_spawn_point.location.distance(self._ego_actor.get_location()))
+            # print("---------------------------------------------")
+            tmp_wpt = self._map.get_waypoint(around_spawn_point.location)
+            diff_road = around_spawn_point.location.distance(self._ego_actor.get_location())
+            if  diff_road < self.max_radius  and diff_road > self.max_radius * 0.5 and  self._map.get_waypoint(around_spawn_point.location).road_id  != same_dir_wps[0].road_id:  # 如果出生点与给定坐标的距离小于半径
+                if num < abs(self.max_vecs -len( self._vehicle_list)):
+                    print("spawn points to ego dist:",
+                          around_spawn_point.location.distance(self._ego_actor.get_location()))
+                    num += 1
+                    spawn_points_filtered.append(tmp_wpt)  # 将出生点添加到过滤后的列表中
+                else :
+                    break
+        print("len(spawn_points_filtered):",len(spawn_points_filtered))
+        if len(spawn_wps) > 0:
+            random.shuffle(spawn_wps)
+            random.shuffle(opp_spawn_wps)
+            random.shuffle(spawn_points_filtered)
+            spawn_wps = spawn_wps[:int(len(spawn_wps)*0.8)]
+            opp_spawn_wps = opp_spawn_wps[:int(len(opp_spawn_wps)*0.6)]
+            spawn_points_filtered = spawn_points_filtered[ :int(len(spawn_points_filtered) * 0.5) ]
+            # spawn_wps = list(set(spawn_wps).union(set( opp_spawn_wps[:int(len(spawn_wps)/2)] ) )  )
+            tmp_vecs = self._spawn_actors(spawn_wps + opp_spawn_wps + spawn_points_filtered)
+            for i in tmp_vecs:
+                self._tm.set_desired_speed(i, float(random.randint(60, 120)))
+            self._vehicle_list = list(set(self._vehicle_list).union(set( tmp_vecs ) )  )
+            # for i in actors:
+            #     self._vehicle_list.append( i)
+            dur_time = time.time() - start
+            print("add vecs time:",dur_time)
+
+
+    def _initialise_road_behavior(self, road_wps,rdm= False):
         """
         Initialises the road behavior, consisting on several vehicle in front of the ego,
         and several on the back and are only spawned outside junctions.
@@ -1204,25 +1348,32 @@ class BackgroundBehavior(AtomicBehavior):
             # Front spawn points
             next_wp = wp
             # self._road_front_vehicles= 2
+            # for _ in range(self._road_front_vehicles):
             for _ in range(self._road_front_vehicles):
                 # self._road_spawn_dist = 15
-                next_wps = next_wp.next(self._road_spawn_dist)
+                next_wps = next_wp.next(self._road_spawn_dist + random.randint(0,15) )
+                if len(next_wps) <= 0:
+                    break
+                dist = next_wps[0].transform.location.distance(wp.transform.location)
+                if dist > self.max_radius:
+                    break
                 if len(next_wps) != 1 or self._is_junction(next_wps[0]):
                     break  # Stop when there's no next or found a junction
                 next_wp = next_wps[0]
                 spawn_wps.insert(0, next_wp)
+
 
             # Back spawn points
             source_dist = 0
             prev_wp = wp
             print("spawn_wps:", spawn_wps)
             for _ in range(self._road_back_vehicles):
-                prev_wps = prev_wp.previous(self._road_spawn_dist)
+                prev_wps = prev_wp.previous(self._road_spawn_dist + random.randint(0,15))
                 if len(prev_wps) != 1 or self._is_junction(prev_wps[0]):
                     break  # Stop when there's no next or found a junction
                 prev_wp = prev_wps[0]
                 spawn_wps.append(prev_wp)
-                source_dist += self._road_spawn_dist
+                # source_dist += self._road_spawn_dist
 
             # Spawn actors
             # actors = self._spawn_actors(spawn_wps)
@@ -1232,10 +1383,12 @@ class BackgroundBehavior(AtomicBehavior):
             # self._road_dict[get_lane_key(wp)] = Source(
             #     prev_wp, actors, active=self._active_road_sources
             # )
+        random.shuffle(spawn_wps)
+        # spawn_wps = spawn_wps[:int(len(spawn_wps)/2)]
         start = time.time()
-        actors = self._spawn_actors(spawn_wps)
-        for i in actors:
-            self.other_vecs.append( i)
+        self._vehicle_list = list(set(self._vehicle_list).union(set( self._spawn_actors(spawn_wps) ) )  )
+        for i in self._vehicle_list:
+            self._tm.set_desired_speed(i , float(random.randint(60, 120)))
         dur_time = time.time() - start
         print("spawn time:",dur_time)
     def _initialise_opposite_sources(self):
@@ -2198,7 +2351,7 @@ class BackgroundBehavior(AtomicBehavior):
         """
         self._tm.auto_lane_change(actor, self._vehicle_lane_change)
         self._tm.update_vehicle_lights(actor, self._vehicle_lights)
-        self._tm.distance_to_leading_vehicle(actor, self._vehicle_leading_distance)
+        self._tm.distance_to_leading_vehicle(actor, self._vehicle_leading_distance +  random.randint(0,4)*3)
         self._tm.vehicle_lane_offset(actor, self._vehicle_offset)
         self._all_actors.append(actor)
 
@@ -2222,6 +2375,10 @@ class BackgroundBehavior(AtomicBehavior):
             return actor
         self._initialise_actor(actor)
         return actor
+    def get_speed(self,actor= None):
+        if actor == None:
+            return np.sqrt( np.square(self._ego_actor.get_velocity().x)  +  np.square(self._ego_actor.get_velocity().y) )
+        return np.sqrt(np.square(actor.get_velocity().x) + np.square(actor.get_velocity().y))
 
     def _spawn_actors(self, spawn_wps, ego_dist=0):
         """Spawns several actors in batch"""
@@ -2229,15 +2386,16 @@ class BackgroundBehavior(AtomicBehavior):
         ego_location = CarlaDataProvider.get_location(self._ego_actor)
         for wp in spawn_wps:
             if ego_location.distance(wp.transform.location) < ego_dist:
+
                 continue
             spawn_transforms.append(
                 carla.Transform(wp.transform.location + carla.Location(z=self._spawn_vertical_shift),
                                 wp.transform.rotation)
             )
-
+        ego_speed = self.get_speed()
         actors = CarlaDataProvider.request_new_batch_actors(
             'vehicle.*', len(spawn_transforms), spawn_transforms, True, False, 'background',
-            attribute_filter=self._attribute_filter, tick=False)
+            attribute_filter=self._attribute_filter, tick=False,veloc=ego_speed if ego_speed > 2 else 2  )
 
         if not actors:
             return actors
@@ -2685,3 +2843,430 @@ class BackgroundBehavior(AtomicBehavior):
             string = 'EGO_' + self._ego_state[0].upper()
             debug_name = DEBUG_ROAD if self._ego_state == EGO_ROAD else DEBUG_JUNCTION
             draw_string(self._world, location, string, debug_name, False)
+
+
+
+
+
+
+
+
+
+
+
+class BackgroundBehavior(AtomicBehavior):
+    """
+    Handles the background activity
+    """
+    def __init__(self, ego_actor, debug=False, name="BackgroundBehavior"):
+        """
+        Setup class members
+        """
+        super(BackgroundBehavior, self).__init__(name)
+        self.debug = debug
+        self._map = CarlaDataProvider.get_map()
+        self._world = CarlaDataProvider.get_world()
+        self._tm_port = CarlaDataProvider.get_traffic_manager_port()
+        self._tm = CarlaDataProvider.get_client().get_trafficmanager(self._tm_port)
+        # 预期速度与当前限制速度之间的百分比差。
+        self._tm.global_percentage_speed_difference(0.0)
+        self._rng = CarlaDataProvider.get_random_seed()
+
+        self._attribute_filter = {'base_type': 'car', 'special_type': '', 'has_lights': True, }
+
+        # Global variables
+        self._ego_actor = ego_actor
+        self._ego_state = EGO_ROAD
+        self._ego_wp = None
+        self._ego_key = ""
+        self._route_index = 0
+        # 将route信息进行解析，初始化若干参数
+        # self._get_route_data(route)
+        self._actors_speed_perc = {}  # Dictionary actor - percentage
+        self._all_actors = []
+        self._lane_width_threshold = 2.25  # Used to stop some behaviors at narrow lanes to avoid problems [m]
+
+        self._spawn_vertical_shift = 0.2
+        self._reuse_dist = 10  # When spawning actors, might reuse actors closer to this distance
+        self._spawn_free_radius = 20  # Sources closer to the ego will not spawn actors
+        self._fake_junction_ids = []
+        self._fake_lane_pair_keys = []
+
+        # Initialisation values
+        self._vehicle_lane_change = True
+        self._vehicle_lights = True
+        self._vehicle_leading_distance = 10
+        self._vehicle_offset = 0.1
+
+        # Road variables
+        self._road_dict = {}  # Dictionary lane key -> actor source
+        self._road_checker_index = 0
+
+        self._road_front_vehicles = 2  # Amount of vehicles in front of the ego
+        self._road_back_vehicles = 2 # Amount of vehicles behind the ego
+        self._radius_increase_ratio = 1.7  # Meters the radius increases per m/s of the ego
+
+        self._base_junction_detection = 30
+        self._detection_ratio = 1.5  # Meters the radius increases per m/s of the ego
+
+        self._road_extra_front_actors = 0  # For cases where we want more space but not more vehicles
+        self._road_spawn_dist = 15  # Distance between spawned vehicles [m]
+        self._road_extra_space = 0  # Extra space for the road vehicles
+
+        self._active_road_sources = True
+
+        self._base_min_radius = 0
+        self._base_max_radius = 0
+        self._min_radius = 0
+        self._max_radius = 0
+        self._detection_dist = 0
+        # self._get_road_radius()
+
+        # Junction variables
+        self._junctions = []  # List with all the junctions part of the route, in order of appearance
+        self._active_junctions = []  # List of all the active junctions
+
+        self._junction_sources_dist = 40  # Distance from the entry sources to the junction [m]
+        self._junction_sources_max_actors = 6  # Maximum vehicles alive at the same time per source
+        self._junction_spawn_dist = 15  # Distance between spawned vehicles [m]
+        self._junction_minimum_source_dist = 15  # Minimum distance between sources and their junction
+
+        self._junction_source_perc = 80  # Probability [%] of the source being created
+
+        # Opposite lane variables
+        self._opposite_actors = []
+        self._opposite_sources = []
+        self._opposite_route_index = 0
+
+        self._opposite_spawn_dist = 40  # Distance between spawned vehicles [m]
+        self._opposite_sources_dist = 80  # Distance from the ego to the opposite sources [m]. Twice the spawn distance
+
+        self._active_opposite_sources = True  # Flag to (de)activate all opposite sources
+
+        # Scenario variables:
+        self._scenario_stopped_actors = []  # Actors stopped by a hard break scenario
+        self._scenario_stopped_back_actors = []  # Actors stopped by a open doors scenario
+        self._scenario_max_speed = 0  # Max speed of the Background Activity. Deactivated with a value of 0
+        self._scenario_junction_entry = False  # Flag indicating the ego is entering a junction
+        self._scenario_junction_entry_distance = self._road_spawn_dist  # Min distance between vehicles and ego
+        self._scenario_removed_lane = False  # Flag indicating a scenario has removed a lane
+        self._scenario_remove_lane_offset = 0
+        self.fram = 1
+        self.other_vecs = []
+        self.client = carla.Client("localhost", 2000)
+        self.tm = self.client.get_trafficmanager()
+        # carla.Location(x=-510.739, y=100, z=10)
+        self.parkinglot = carla.Location(x=-510.739, y=100, z=10)
+        self.parking_vecs = []
+        self._vehicle_list = []
+        self._destroy_list = []
+
+        self.max_vecs =50
+        self.max_radius = 200
+        self.front_traffic_bound = 15
+        self.front_traffic_bound_1 = 15
+        self.bake_traffic_bound = 15
+        self.bake_traffic_bound_1 = 15
+        self.apll_spawn_points = self._world .get_map().get_spawn_points()
+
+    def initialise(self):
+        """Creates the background activity actors. Pressuposes that the ego is at a road"""
+        # self._create_junction_dict()
+        # ego_wp = self._route[0]
+        # 获取主车初始位置
+        ego_wp = self._map.get_waypoint(self._ego_actor.get_location())
+        same_dir_wps = get_same_dir_lanes(ego_wp)
+        opposite_dir_wps = get_opposite_dir_lanes(ego_wp)
+        # # 初始化50辆车
+        self._initialise_road_behavior(same_dir_wps + opposite_dir_wps)
+
+
+    def update(self):
+        flag = True
+        ego_wp = self._map.get_waypoint(self._ego_actor.get_location())
+        # print("ego_wp:",ego_wp.transform.location,ego_wp.transform.rotation,self._ego_actor.get_velocity())
+        # if self.fram == 300 :
+        #     self._ego_actor.set_simulate_physics(False)
+        #     self._ego_actor.set_location(carla.Location(x=-407.739, y=31,z=0) )
+        self.fram += 1
+        start = time.time()
+        if flag and self.fram % 5 == 0:
+        # if True:
+            destroy_indexs = []
+            front_tmpmax = 0
+            opp_front_tmpmax = 0
+            bake_tmpmax = 0
+            opp_bake_tmpmax = 0
+            if self.fram % 100 == 0:
+                for i in range(len(self._vehicle_list)):
+                    dist = self._vehicle_list[i].get_location().distance(ego_wp.transform.location)
+                    vec_wp = self._map.get_waypoint(self._vehicle_list[i].get_location())
+                    # 每过一千帧，删除车流车头慢车
+                    if flag and self.fram % 1000 == 0 and dist > self.max_radius * 0.7:
+                        destroy_indexs.append( self._vehicle_list[i].id )
+                        self._destroy_list.append(carla.command.DestroyActor(self._vehicle_list[i]))
+                    if dist > self.max_radius:  # 如果车辆与给定坐标的距离大于半径
+                        destroy_indexs.append( self._vehicle_list[i].id )
+                        self._destroy_list.append(carla.command.DestroyActor(self._vehicle_list[i]))
+                    # 更新前后距离
+                    elif self.get_local_location(self._ego_actor, self._vehicle_list[i].get_location()).x > 0 and  dist > front_tmpmax and ego_wp.lane_id * vec_wp.lane_id > 0  :
+                        front_tmpmax= dist
+                    elif self.get_local_location(self._ego_actor, self._vehicle_list[i].get_location()).x > 0 and  dist > opp_front_tmpmax and ego_wp.lane_id * vec_wp.lane_id <  0  :
+                        opp_front_tmpmax= dist
+                    elif self.get_local_location(self._ego_actor, self._vehicle_list[i].get_location()).x <  0 and  dist > bake_tmpmax and ego_wp.lane_id * vec_wp.lane_id > 0 :
+                        bake_tmpmax = dist
+                    elif self.get_local_location(self._ego_actor, self._vehicle_list[i].get_location()).x <  0 and  dist > opp_bake_tmpmax and ego_wp.lane_id * vec_wp.lane_id <  0  :
+                        opp_bake_tmpmax = dist
+
+                self.front_traffic_bound = front_tmpmax + 30
+                self.front_traffic_bound_1 = opp_front_tmpmax + 30
+                self.bake_traffic_bound = bake_tmpmax + 30
+                self.bake_traffic_bound_1 = opp_bake_tmpmax + 30
+            print('bound dist:',self.front_traffic_bound,self.front_traffic_bound_1,self.bake_traffic_bound,self.bake_traffic_bound_1)
+            if  len(destroy_indexs) > 0:
+                self.client.apply_batch(self._destroy_list)
+                self._vehicle_list = list(filter(  lambda  x: x.id not in destroy_indexs, self._vehicle_list  ))
+
+            # 补充车辆
+            print("len vehicle list:", len(self._vehicle_list))
+            if self.fram % 100 == 0 and  len(self._vehicle_list) <= self.max_vecs:
+                same_dir_wps = get_same_dir_lanes(ego_wp)
+                opposite_dir_wps = get_opposite_dir_lanes(ego_wp)
+                # spawn_wps = list(set(same_dir_wps).union(set( opposite_dir_wps ) )  )
+                self._add_road_vecs(same_dir_wps,opposite_dir_wps,True)
+                # self._initialise_road_behavior(same_dir_wps,True)
+        durtime1 = time.time() - start
+        if durtime1 > 0.001:
+            print("remove outof radis durtime",durtime1)
+        return py_trees.common.Status.RUNNING
+
+    def _add_road_vecs(self,same_dir_wps, opposite_dir_wps,rdm=False):
+        spawn_wps = []
+        start = time.time()
+        for wp in same_dir_wps:
+            # print("self.front_traffic_bound and bake :",self.front_traffic_bound,self.bake_traffic_bound)
+            # print("self.bake_traffic_bound:",self.bake_traffic_bound)
+            # Front spawn points
+            next_wp = wp
+            # self._road_front_vehicles= 2
+            # for _ in range(self._road_front_vehicles):
+            # 控制生成车辆车距
+            speed_dist = self.get_speed()
+            offset = 0
+            for _ in range(3):
+                # self._road_spawn_dist = 15
+                next_wps = next_wp.next(self.front_traffic_bound + self._road_spawn_dist + random.randint(0,4)*3 + speed_dist * 2 + offset  )
+                offset += 20
+                dist = next_wps[0].transform.location.distance(self._ego_actor.get_location())
+                print("front spawn vec dist: ", dist)
+                if dist > self.max_radius:
+                    break
+                if len(next_wps) != 1 or self._is_junction(next_wps[0]):
+                    break  # Stop when there's no next or found a junction
+                next_wp = next_wps[0]
+                spawn_wps.insert(0, next_wp)
+            prev_wp = wp
+            # for _ in range(self._road_back_vehicles):
+            offset = 0
+            for _ in range(6):
+                prev_wps = prev_wp.previous(self.front_traffic_bound + self._road_spawn_dist+ random.randint(0,4)*3 + speed_dist*1.2 + offset   )
+                if len(prev_wps) <= 0:
+                    break
+                offset +=20
+                dist = prev_wps[0].transform.location.distance(self._ego_actor.get_location())
+                # print("bake spawn vec dist: ",dist)
+                if dist > self.max_radius:
+                    break
+                if len(prev_wps) != 1 or self._is_junction(prev_wps[0]):
+                    break  # Stop when there's no next or found a junction
+                prev_wp = prev_wps[0]
+                spawn_wps.append(prev_wp)
+        opp_spawn_wps = []
+        for wp in opposite_dir_wps:
+        #     next_wp = wp
+        #     # 控制生成车辆车距
+        #     for _ in range(3):
+        #         # self._road_spawn_dist = 15
+        #         next_wps = next_wp.next( self.bake_traffic_bound_1 +  self._road_spawn_dist + random.randint(5,10)   )
+        #         dist = next_wps[0].transform.location.distance(self._ego_actor.get_location())
+        #         print("front spawn vec dist: ", dist)
+        #         if dist > self.max_radius:
+        #             break
+        #         if len(next_wps) != 1 or self._is_junction(next_wps[0]):
+        #             break  # Stop when there's no next or found a junction
+        #         next_wp = next_wps[0]
+        #
+        #         opp_spawn_wps.insert(0, next_wp)
+
+            prev_wp = wp
+            # for _ in range(self._road_back_vehicles):
+            offset = 0
+            for _ in range(3):
+                prev_wps = prev_wp.previous(  self.front_traffic_bound_1 + self._road_spawn_dist+ random.randint(0,4)*3 + offset   )
+                if len(prev_wps) <= 0:
+                    break
+                offset += 20
+                dist = prev_wps[0].transform.location.distance(self._ego_actor.get_location())
+                # print("bake spawn vec dist: ",dist)
+                if dist > self.max_radius:
+                    break
+                if len(prev_wps) != 1 or self._is_junction(prev_wps[0]):
+                    break  # Stop when there's no next or found a junction
+                prev_wp = prev_wps[0]
+                opp_spawn_wps.append(prev_wp)
+        spawn_points_filtered = []
+        num = 0
+        for i, around_spawn_point in enumerate(self.apll_spawn_points):  # 遍历所有出生点
+            # print("---------------------------------------------")
+            # print(self._map.get_waypoint(around_spawn_point.location).road_id )
+            # print(same_dir_wps[0].road_id)
+            # print(around_spawn_point.location.distance(self._ego_actor.get_location()))
+            # print("---------------------------------------------")
+            tmp_wpt = self._map.get_waypoint(around_spawn_point.location)
+            diff_road = around_spawn_point.location.distance(self._ego_actor.get_location())
+            if  diff_road < self.max_radius  and diff_road > self.max_radius * 0.5 and  self._map.get_waypoint(around_spawn_point.location).road_id  != same_dir_wps[0].road_id:  # 如果出生点与给定坐标的距离小于半径
+                if num < abs(self.max_vecs -len( self._vehicle_list)):
+                    print("spawn points to ego dist:",
+                          around_spawn_point.location.distance(self._ego_actor.get_location()))
+                    num += 1
+                    spawn_points_filtered.append(tmp_wpt)  # 将出生点添加到过滤后的列表中
+                else :
+                    break
+        print("len(spawn_points_filtered):",len(spawn_points_filtered))
+        if len(spawn_wps) > 0:
+            random.shuffle(spawn_wps)
+            random.shuffle(opp_spawn_wps)
+            random.shuffle(spawn_points_filtered)
+            spawn_wps = spawn_wps[:int(len(spawn_wps)*0.8)]
+            opp_spawn_wps = opp_spawn_wps[:int(len(opp_spawn_wps)*0.6)]
+            spawn_points_filtered = spawn_points_filtered[ :int(len(spawn_points_filtered) * 0.5) ]
+            # spawn_wps = list(set(spawn_wps).union(set( opp_spawn_wps[:int(len(spawn_wps)/2)] ) )  )
+            tmp_vecs = self._spawn_actors(spawn_wps + opp_spawn_wps + spawn_points_filtered)
+            for i in tmp_vecs:
+                self._tm.set_desired_speed(i, float(random.randint(60, 120)))
+            self._vehicle_list = list(set(self._vehicle_list).union(set( tmp_vecs ) )  )
+            # for i in actors:
+            #     self._vehicle_list.append( i)
+            dur_time = time.time() - start
+            print("add vecs time:",dur_time)
+
+
+
+
+    def _initialise_road_behavior(self, road_wps,rdm= False):
+        """
+        Initialises the road behavior, consisting on several vehicle in front of the ego,
+        and several on the back and are only spawned outside junctions.
+        If there aren't enough actors behind, road sources will be created that will do so later on
+        """
+        # Vehicles in front
+
+        spawn_wps = []
+        for wp in road_wps:
+
+            # Front spawn points
+            next_wp = wp
+            # self._road_front_vehicles= 2
+            # for _ in range(self._road_front_vehicles):
+            for _ in range(self._road_front_vehicles):
+                # self._road_spawn_dist = 15
+                next_wps = next_wp.next(self._road_spawn_dist + random.randint(0,15) )
+                if len(next_wps) <= 0:
+                    break
+                dist = next_wps[0].transform.location.distance(wp.transform.location)
+                if dist > self.max_radius:
+                    break
+                if len(next_wps) != 1 or self._is_junction(next_wps[0]):
+                    break  # Stop when there's no next or found a junction
+                next_wp = next_wps[0]
+                spawn_wps.insert(0, next_wp)
+
+
+            # Back spawn points
+            source_dist = 0
+            prev_wp = wp
+            print("spawn_wps:", spawn_wps)
+            for _ in range(self._road_back_vehicles):
+                prev_wps = prev_wp.previous(self._road_spawn_dist + random.randint(0,15))
+                if len(prev_wps) != 1 or self._is_junction(prev_wps[0]):
+                    break  # Stop when there's no next or found a junction
+                prev_wp = prev_wps[0]
+                spawn_wps.append(prev_wp)
+                # source_dist += self._road_spawn_dist
+
+            # Spawn actors
+            # actors = self._spawn_actors(spawn_wps)
+
+            # for i in actors:
+            #     self.other_vecs.append( i)
+            # self._road_dict[get_lane_key(wp)] = Source(
+            #     prev_wp, actors, active=self._active_road_sources
+            # )
+        random.shuffle(spawn_wps)
+        # spawn_wps = spawn_wps[:int(len(spawn_wps)/2)]
+        start = time.time()
+        self._vehicle_list = list(set(self._vehicle_list).union(set( self._spawn_actors(spawn_wps) ) )  )
+        for i in self._vehicle_list:
+            self._tm.set_desired_speed(i , float(random.randint(60, 120)))
+        dur_time = time.time() - start
+        print("spawn time:",dur_time)
+
+
+    def _spawn_actors(self, spawn_wps, ego_dist=0):
+        """Spawns several actors in batch"""
+        spawn_transforms = []
+        ego_location = CarlaDataProvider.get_location(self._ego_actor)
+        for wp in spawn_wps:
+            if ego_location.distance(wp.transform.location) < ego_dist:
+
+                continue
+            spawn_transforms.append(
+                carla.Transform(wp.transform.location + carla.Location(z=self._spawn_vertical_shift),
+                                wp.transform.rotation)
+            )
+        ego_speed = self.get_speed()
+        actors = CarlaDataProvider.request_new_batch_actors(
+            'vehicle.*', len(spawn_transforms), spawn_transforms, True, False, 'background',
+            attribute_filter=self._attribute_filter, tick=False,veloc=ego_speed if ego_speed > 2 else 2  )
+
+        if not actors:
+            return actors
+
+        for actor in actors:
+            self._initialise_actor(actor)
+
+        return actors
+
+
+    def _is_junction(self, waypoint):
+        if not waypoint.is_junction or waypoint.junction_id in self._fake_junction_ids:
+            return False
+        return True
+
+    def get_speed(self,actor= None):
+        if actor == None:
+            return np.sqrt( np.square(self._ego_actor.get_velocity().x)  +  np.square(self._ego_actor.get_velocity().y) )
+        return np.sqrt(np.square(actor.get_velocity().x) + np.square(actor.get_velocity().y))
+
+    def _initialise_actor(self, actor):
+        """
+        Save the actor into the needed structures, disable its lane changes and set the leading distance.
+        """
+        self._tm.auto_lane_change(actor, self._vehicle_lane_change)
+        self._tm.update_vehicle_lights(actor, self._vehicle_lights)
+        self._tm.distance_to_leading_vehicle(actor, self._vehicle_leading_distance +  random.randint(0,4)*3)
+        self._tm.vehicle_lane_offset(actor, self._vehicle_offset)
+        # self._all_actors.append(actor)
+
+    def get_local_location(self,vehicle, location) -> carla.Location:
+        """将全局坐标系下的坐标转到局部坐标系下
+
+        Args:
+            location (Location): 待变换的全局坐标系坐标
+        """
+        res = np.array(vehicle.get_transform().get_inverse_matrix()).dot(
+            np.array(
+                [location.x, location.y, location.z, 1]
+            )
+        )
+        return carla.Location(x=res[0], y=res[1], z=res[2])

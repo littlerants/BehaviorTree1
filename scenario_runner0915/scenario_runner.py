@@ -339,6 +339,7 @@ class ScenarioRunner(object):
         self.world = self.client.get_world()
 
         if self._args.sync:
+        # if True:
             settings = self.world.get_settings()
             settings.synchronous_mode = True
             settings.fixed_delta_seconds = 1.0 / self.frame_rate

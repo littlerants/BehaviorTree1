@@ -16,6 +16,7 @@ import math
 import re
 import threading
 from numpy import random
+import  numpy as np
 from six import iteritems
 
 import carla
@@ -815,9 +816,16 @@ class CarlaDataProvider(object):  # pylint: disable=too-many-public-methods
         return actors
 
     @staticmethod
+    def trans_velocity(ego_speed, rotation):
+        # 输入，主车速度， npc车辆车道方向
+        # 返回，npc车辆速度
+        vx = ego_speed* np.cos(rotation/180 * 3.1415926)
+        vy = ego_speed* np.sin(rotation/180 * 3.1415926)
+        return carla.Vector3D(x=vx, y=vy,z=0)
+    @staticmethod
     def request_new_batch_actors(model, amount, spawn_points, autopilot=False,
                                  random_location=False, rolename='scenario',
-                                 attribute_filter=None, tick=True):
+                                 attribute_filter=None, tick=True ,veloc = 10):
         """
         Simplified version of "request_new_actors". This method also create several actors in batch.
 
@@ -831,7 +839,7 @@ class CarlaDataProvider(object):  # pylint: disable=too-many-public-methods
         SpawnActor = carla.command.SpawnActor      # pylint: disable=invalid-name
         SetAutopilot = carla.command.SetAutopilot  # pylint: disable=invalid-name
         FutureActor = carla.command.FutureActor    # pylint: disable=invalid-name
-
+        Velocity = carla.command.ApplyTargetVelocity
         CarlaDataProvider.generate_spawn_points()
 
         batch = []
@@ -856,7 +864,7 @@ class CarlaDataProvider(object):  # pylint: disable=too-many-public-methods
 
             if spawn_point:
                 batch.append(SpawnActor(blueprint, spawn_point).then(
-                    SetAutopilot(FutureActor, autopilot, CarlaDataProvider._traffic_manager_port)))
+                    SetAutopilot(FutureActor, autopilot, CarlaDataProvider._traffic_manager_port)).then(Velocity(FutureActor, CarlaDataProvider.trans_velocity(veloc + random.randint(0,4)*3, spawn_point.rotation.yaw  ) ))   )
 
         actors = CarlaDataProvider.handle_actor_batch(batch, tick)
         for actor in actors:
@@ -866,6 +874,73 @@ class CarlaDataProvider(object):  # pylint: disable=too-many-public-methods
             CarlaDataProvider.register_actor(actor, spawn_point)
 
         return actors
+
+    @staticmethod
+    def request_new_batch_actors_physics_toparkinglot(model, amount, spawn_point, autopilot=False,
+                                  rolename='scenario', attribute_filter=None, tick=True,physics = False):
+
+        """
+        Simplified version of "request_new_actors". This method also create several actors in batch.
+        add physics option
+        Instead of needing a list of ActorConfigurationData, an "amount" parameter is used.
+        This makes actor spawning easier but reduces the amount of configurability.
+
+        Some parameters are the same for all actors (rolename, autopilot and random location)
+        while others are randomized (color)
+        """
+
+        SpawnActor = carla.command.SpawnActor      # pylint: disable=invalid-name
+        SetAutopilot = carla.command.SetAutopilot  # pylint: disable=invalid-name
+        FutureActor = carla.command.FutureActor    # pylint: disable=invalid-name
+        PhysicsCommand = carla.command.SetSimulatePhysics          # pylint: disable=invalid-name
+
+        CarlaDataProvider.generate_spawn_points()
+
+        batch = []
+        y = 90
+
+        for i in range(amount):
+            # Get vehicle by model
+            # FutureActor = carla.command.FutureActor
+            # spawn_point = carla.Transform(carla.Location(x=-510.739, y=y, z=100))
+            spawn_point.location.y += 10
+            # y += 10
+            blueprint = CarlaDataProvider.create_blueprint(model, rolename, attribute_filter=attribute_filter)
+            # try:
+            #     spawn_point = spawn_point[i]
+            # except IndexError:
+            #     print("The amount of spawn points is lower than the amount of vehicles spawned")
+            #     break
+
+            if spawn_point:
+                batch.append(SpawnActor(blueprint, spawn_point).then(PhysicsCommand(FutureActor, False)).then(
+                    SetAutopilot(FutureActor, autopilot, CarlaDataProvider._traffic_manager_port))  )
+        print("len(batch):",len(batch))
+        actors = CarlaDataProvider.handle_actor_batch(batch, tick)
+        for actor in actors:
+            if actor is None:
+                continue
+            CarlaDataProvider._carla_actor_pool[actor.id] = actor
+            CarlaDataProvider.register_actor(actor, spawn_point)
+
+        return actors
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     @staticmethod
     def get_actors():

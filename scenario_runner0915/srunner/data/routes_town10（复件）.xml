@@ -1,8 +1,6 @@
 <routes>
-   <route id="0" town="Town10HD_Opt">
-
+   <route id="0" town="Town04">
       <!-- <weathers>
-      <route id="0" town="OpenDriveMap">
          <weather route_percentage="0"
             cloudiness="5.0" precipitation="0.0" precipitation_deposits="0.0" wetness="0.0"
             wind_intensity="10.0" sun_azimuth_angle="-1.0" sun_altitude_angle="90.0" fog_density="2.0"/>
@@ -11,9 +9,8 @@
             wind_intensity="10.0" sun_azimuth_angle="-1.0" sun_altitude_angle="15.0" fog_density="2.0"/>
       </weathers> -->
       <waypoints>
-         <position x="-4124.37" y="66.051" z="0.0"/>
-         <position x="2224.739" y="66.026" z="0.0"/>
-         <position x="4224.739" y="66.026" z="0.0"/>
+         <position x="-510.102" y="109.293" z="0.0"/>
+         <position x="-510.739" y="175.026" z="0.0"/>
       </waypoints>
       <scenarios>
       </scenarios>
