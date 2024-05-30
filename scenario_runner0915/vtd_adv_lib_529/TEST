@@ -1,0 +1,290 @@
+
+------------------------------------------------------------
+VT-GUI
+<EgoCtrl player=""><Speed value="0.000000" /></EgoCtrl>
+------------------------------------------------------------
+VT-GUI
+<EgoCtrl player="Ego"><Speed value="0.000000" /></EgoCtrl>
+------------------------------------------------------------
+VT-GUI
+<EgoCtrl player="Ego"><Speed value="0.000000" /></EgoCtrl>
+------------------------------------------------------------
+VT-GUI
+<EgoCtrl player=""><Speed value="0.000000" /></EgoCtrl>
+------------------------------------------------------------
+VT-GUI
+<EgoCtrl player="Ego"><Speed value="0.000000" /></EgoCtrl>
+------------------------------------------------------------
+VT-GUI
+<EgoCtrl player="Ego"><Speed value="0.000000" /></EgoCtrl>
+
+
+
+
+------------------------------------------------------------
+VT-GUI
+<EgoCtrl player=""><Speed value="0.000000" /></EgoCtrl>
+------------------------------------------------------------
+VT-GUI
+<EgoCtrl player="Ego"><Speed value="0.000000" /></EgoCtrl>
+------------------------------------------------------------
+VT-GUI
+<EgoCtrl player="Ego"><Speed value="0.000000" /></EgoCtrl>
+------------------------------------------------------------
+VT-GUI
+<EgoCtrl player=""><Speed value="0.000000" /></EgoCtrl>
+------------------------------------------------------------
+VT-GUI
+<EgoCtrl player="Ego"><Speed value="0.000000" /></EgoCtrl>
+------------------------------------------------------------
+VT-GUI
+<EgoCtrl player="Ego"><Speed value="0.000000" /></EgoCtrl>
+------------------------------------------------------------
+VT-GUI
+<SimCtrl><Stop /></SimCtrl>
+------------------------------------------------------------
+VT-GUI
+<SimCtrl><Project name="SampleProject" path="/home/vtd/VTD.2.2/Data/Projects/Current" /></SimCtrl>
+------------------------------------------------------------
+TaskControl
+<TaskControl><RDB client="false" enable="true" interface="eth0" portRx="48190" portTx="48190" portType="TCP" /></TaskControl>
+------------------------------------------------------------
+VT-GUI
+<SimCtrl><UnloadSensors /><LoadScenario filename="/home/vtd/VTD.2.2/Data/Projects/Current/Scenarios/advtest/highway.xml" /><Init mode="operation" /></SimCtrl>
+------------------------------------------------------------
+VT-GUI
+<SimCtrl><Stop /></SimCtrl>
+------------------------------------------------------------
+VT-GUI
+<SimCtrl><Project name="SampleProject" path="/home/vtd/VTD.2.2/Data/Projects/Current" /></SimCtrl>
+------------------------------------------------------------
+TaskControl
+<TaskControl><RDB client="false" enable="true" interface="eth0" portRx="48190" portTx="48190" portType="TCP" /></TaskControl>
+------------------------------------------------------------
+VT-GUI
+<SimCtrl><UnloadSensors /><LoadScenario filename="/home/vtd/VTD.2.2/Data/Projects/Current/Scenarios/advtest/highway.xml" /><Init mode="operation" /></SimCtrl>
+------------------------------------------------------------
+TaskControl
+<Reply entity="taskControl"><Init source="moduleMgr" /></Reply>
+------------------------------------------------------------
+ModuleManager
+<Query entity="taskControl"><Init source="moduleMgr" /></Query>
+------------------------------------------------------------
+TaskControl
+<Reply entity="taskControl"><Init source="moduleMgr" /></Reply>
+------------------------------------------------------------
+ModuleManager
+<Query entity="taskControl"><Init source="moduleMgr" /></Query>
+------------------------------------------------------------
+TaskControl
+<SimCtrl><LayoutFile filename="/home/vtd/VTD.2.2/Data/Projects/SampleProject/Scenarios/advtest/highway_01.xodr" /></SimCtrl>
+------------------------------------------------------------
+TaskControl
+<Set entity="player" id="1" name="Ego"><PosInertial hDeg="90.0000" pDeg="0.0000" rDeg="0.0000" x="13.085" y="15.382" z="0.000" /><Path id="-1" s="0.000" /></Set>
+------------------------------------------------------------
+TaskControl
+<Player name="Ego"><Config dynamics="default" initialSpeed="0.000" scenarioEntity="1" visualModel="0" /></Player>
+------------------------------------------------------------
+VT-GUI
+<Environment><Friction value="1.000000" /><Date day="1" month="6" year="2008" /><TimeOfDay headlights="auto" timezone="0" value="50400" /><Sky cloudState="0/8" visibility="100000.000000" /><Precipitation intensity="0.000000" type="none" /><Road effectScale="0.500000" state="dry" /></Environment>
+------------------------------------------------------------
+VT-GUI
+<Camera name="VIEW_CAMERA" showOwner="false"><Frustum far="1500.000000" fovHor="40.000000" fovVert="30.000000" near="1.000000" offsetHor="0.000000" offsetVert="0.000000" /><PosEyepoint /><ViewRelative dh="0.000000" dp="0.000000" dr="0.000000" /><Set /></Camera>
+------------------------------------------------------------
+VT-GUI
+<Display><Database enable="true" streetLamps="false" /><VistaOverlay enable="false" /></Display>
+------------------------------------------------------------
+viTrafficDyn
+<Player name="Ego"><Driver ctrlLatLong="ghostdriver" /></Player>
+------------------------------------------------------------
+Traffic
+<Player name="Ego"><VehicleDef airDragCoefficient="0.34" distCoupling="3.536 0 0.385" distFront="3.536" distHeight="1.352" distHitch="-0.858 0 0.385" distLeft="0.904" distRear="0.858" distRight="0.904" enginePower="191000" frontSurfaceEffective="2.1" gradientPitchAngle="-1" gradientRollAngle="-1" mass="1705" maxDecel="-10" maxSpeed="69.444" maxSteering="0.46" maxTorque="322" overallEfficiency="0.75" rollingResistance="0.013" trackWidth="-1" wheelBase="2.536" wheelDiameter="0.63994" wheelDiameterDynamic="0.704" wheelDrive="wheel_drive_front" wheelSkewStiffness="12" /></Player>
+------------------------------------------------------------
+Traffic
+<Player name="Ego"><VehicleDef airDragCoefficient="0.34" distCoupling="3.536 0 0.385" distFront="3.536" distHeight="1.352" distHitch="-0.858 0 0.385" distLeft="0.904" distRear="0.858" distRight="0.904" enginePower="191000" frontSurfaceEffective="2.1" gradientPitchAngle="-1" gradientRollAngle="-1" mass="1705" maxDecel="-10" maxSpeed="69.444" maxSteering="0.46" maxTorque="322" overallEfficiency="0.75" rollingResistance="0.013" trackWidth="-1" wheelBase="2.536" wheelDiameter="0.63994" wheelDiameterDynamic="0.704" wheelDrive="wheel_drive_front" wheelSkewStiffness="12" /></Player>
+------------------------------------------------------------
+Traffic
+<Player name="Ego"><ModelDescription name="Car_AlfaRomeoBrera"><Mirrors><Mirror name="MirrorCenter" x="1.588" y="0" z="1.198" /><Mirror name="MirrorLeft" x="1.678" y="0.913" z="0.972" /><Mirror name="MirrorRight" x="1.678" y="-0.913" z="0.972" /></Mirrors><EyePoints><EyePoint name="Driver" x="1.203" y="0.428" z="1.094" /></EyePoints><LightSources><LightSource ID="DefaultHeadlight" name="HeadLightLeft" type="Headlight" x="3.316" y="0.438" z="0.562" /><LightSource ID="DefaultHeadlight" name="HeadLightRight" type="Headlight" x="3.316" y="-0.438" z="0.562" /><LightSource name="TaillightLeft" type="Taillight" x="-0.547" y="0.578" z="0.822" /><LightSource name="TaillightRight" type="Taillight" x="-0.547" y="-0.578" z="0.822" /></LightSources><Switches brakelights="true" daytimeRunningLight="true" driver="true" foglightFront="true" foglightRear="true" headlights="true" indicatorLeft="true" indicatorRight="true" litNumberPlate="true" reverseDrivinglight="true" /></ModelDescription></Player>
+------------------------------------------------------------
+Traffic
+<Set entity="player" name="Ego"><PosInertial hDeg="90" jumpToPos="true" x="13.0851593" y="15.38214493" z="0" /></Set>
+------------------------------------------------------------
+Traffic
+<Player name="New Player"><ModelDescription name="Car_AlfaRomeoBrera"><Mirrors><Mirror name="MirrorCenter" x="1.588" y="0" z="1.198" /><Mirror name="MirrorLeft" x="1.678" y="0.913" z="0.972" /><Mirror name="MirrorRight" x="1.678" y="-0.913" z="0.972" /></Mirrors><EyePoints><EyePoint name="Driver" x="1.203" y="0.428" z="1.094" /></EyePoints><LightSources><LightSource ID="DefaultHeadlight" name="HeadLightLeft" type="Headlight" x="3.316" y="0.438" z="0.562" /><LightSource ID="DefaultHeadlight" name="HeadLightRight" type="Headlight" x="3.316" y="-0.438" z="0.562" /><LightSource name="TaillightLeft" type="Taillight" x="-0.547" y="0.578" z="0.822" /><LightSource name="TaillightRight" type="Taillight" x="-0.547" y="-0.578" z="0.822" /></LightSources><Switches brakelights="true" daytimeRunningLight="true" driver="true" foglightFront="true" foglightRear="true" headlights="true" indicatorLeft="true" indicatorRight="true" litNumberPlate="true" reverseDrivinglight="true" /></ModelDescription></Player>
+------------------------------------------------------------
+Traffic
+<Player name="Ego"><VehicleDef airDragCoefficient="0.34" distCoupling="3.536 0 0.385" distFront="3.536" distHeight="1.352" distHitch="-0.858 0 0.385" distLeft="0.904" distRear="0.858" distRight="0.904" enginePower="191000" frontSurfaceEffective="2.1" gradientPitchAngle="-1" gradientRollAngle="-1" mass="1705" maxDecel="-10" maxSpeed="69.444" maxSteering="0.46" maxTorque="322" overallEfficiency="0.75" rollingResistance="0.013" trackWidth="-1" wheelBase="2.536" wheelDiameter="0.63994" wheelDiameterDynamic="0.704" wheelDrive="wheel_drive_front" wheelSkewStiffness="12" /></Player>
+------------------------------------------------------------
+TaskControl
+<SimCtrl><LayoutFile filename="/home/vtd/VTD.2.2/Data/Projects/SampleProject/Scenarios/advtest/highway_01.xodr" /></SimCtrl>
+------------------------------------------------------------
+TaskControl
+<Set entity="player" id="1" name="Ego"><PosInertial hDeg="90.0000" pDeg="0.0000" rDeg="0.0000" x="13.085" y="15.382" z="0.000" /><Path id="-1" s="0.000" /></Set>
+------------------------------------------------------------
+TaskControl
+<Player name="Ego"><Config dynamics="default" initialSpeed="0.000" scenarioEntity="1" visualModel="0" /></Player>
+------------------------------------------------------------
+VT-GUI
+<Environment><Friction value="1.000000" /><Date day="1" month="6" year="2008" /><TimeOfDay headlights="auto" timezone="0" value="50400" /><Sky cloudState="0/8" visibility="100000.000000" /><Precipitation intensity="0.000000" type="none" /><Road effectScale="0.500000" state="dry" /></Environment>
+------------------------------------------------------------
+VT-GUI
+<Camera name="VIEW_CAMERA" showOwner="false"><Frustum far="1500.000000" fovHor="40.000000" fovVert="30.000000" near="1.000000" offsetHor="0.000000" offsetVert="0.000000" /><PosEyepoint /><ViewRelative dh="0.000000" dp="0.000000" dr="0.000000" /><Set /></Camera>
+------------------------------------------------------------
+VT-GUI
+<Display><Database enable="true" streetLamps="false" /><VistaOverlay enable="false" /></Display>
+------------------------------------------------------------
+viTrafficDyn
+<Player name="Ego"><Driver ctrlLatLong="ghostdriver" /></Player>
+------------------------------------------------------------
+Traffic
+<Player name="Ego"><VehicleDef airDragCoefficient="0.34" distCoupling="3.536 0 0.385" distFront="3.536" distHeight="1.352" distHitch="-0.858 0 0.385" distLeft="0.904" distRear="0.858" distRight="0.904" enginePower="191000" frontSurfaceEffective="2.1" gradientPitchAngle="-1" gradientRollAngle="-1" mass="1705" maxDecel="-10" maxSpeed="69.444" maxSteering="0.46" maxTorque="322" overallEfficiency="0.75" rollingResistance="0.013" trackWidth="-1" wheelBase="2.536" wheelDiameter="0.63994" wheelDiameterDynamic="0.704" wheelDrive="wheel_drive_front" wheelSkewStiffness="12" /></Player>
+------------------------------------------------------------
+Traffic
+<Player name="Ego"><VehicleDef airDragCoefficient="0.34" distCoupling="3.536 0 0.385" distFront="3.536" distHeight="1.352" distHitch="-0.858 0 0.385" distLeft="0.904" distRear="0.858" distRight="0.904" enginePower="191000" frontSurfaceEffective="2.1" gradientPitchAngle="-1" gradientRollAngle="-1" mass="1705" maxDecel="-10" maxSpeed="69.444" maxSteering="0.46" maxTorque="322" overallEfficiency="0.75" rollingResistance="0.013" trackWidth="-1" wheelBase="2.536" wheelDiameter="0.63994" wheelDiameterDynamic="0.704" wheelDrive="wheel_drive_front" wheelSkewStiffness="12" /></Player>
+------------------------------------------------------------
+Traffic
+<Player name="Ego"><ModelDescription name="Car_AlfaRomeoBrera"><Mirrors><Mirror name="MirrorCenter" x="1.588" y="0" z="1.198" /><Mirror name="MirrorLeft" x="1.678" y="0.913" z="0.972" /><Mirror name="MirrorRight" x="1.678" y="-0.913" z="0.972" /></Mirrors><EyePoints><EyePoint name="Driver" x="1.203" y="0.428" z="1.094" /></EyePoints><LightSources><LightSource ID="DefaultHeadlight" name="HeadLightLeft" type="Headlight" x="3.316" y="0.438" z="0.562" /><LightSource ID="DefaultHeadlight" name="HeadLightRight" type="Headlight" x="3.316" y="-0.438" z="0.562" /><LightSource name="TaillightLeft" type="Taillight" x="-0.547" y="0.578" z="0.822" /><LightSource name="TaillightRight" type="Taillight" x="-0.547" y="-0.578" z="0.822" /></LightSources><Switches brakelights="true" daytimeRunningLight="true" driver="true" foglightFront="true" foglightRear="true" headlights="true" indicatorLeft="true" indicatorRight="true" litNumberPlate="true" reverseDrivinglight="true" /></ModelDescription></Player>
+------------------------------------------------------------
+Traffic
+<Set entity="player" name="Ego"><PosInertial hDeg="90" jumpToPos="true" x="13.0851593" y="15.38214493" z="0" /></Set>
+------------------------------------------------------------
+Traffic
+<Player name="New Player"><ModelDescription name="Car_AlfaRomeoBrera"><Mirrors><Mirror name="MirrorCenter" x="1.588" y="0" z="1.198" /><Mirror name="MirrorLeft" x="1.678" y="0.913" z="0.972" /><Mirror name="MirrorRight" x="1.678" y="-0.913" z="0.972" /></Mirrors><EyePoints><EyePoint name="Driver" x="1.203" y="0.428" z="1.094" /></EyePoints><LightSources><LightSource ID="DefaultHeadlight" name="HeadLightLeft" type="Headlight" x="3.316" y="0.438" z="0.562" /><LightSource ID="DefaultHeadlight" name="HeadLightRight" type="Headlight" x="3.316" y="-0.438" z="0.562" /><LightSource name="TaillightLeft" type="Taillight" x="-0.547" y="0.578" z="0.822" /><LightSource name="TaillightRight" type="Taillight" x="-0.547" y="-0.578" z="0.822" /></LightSources><Switches brakelights="true" daytimeRunningLight="true" driver="true" foglightFront="true" foglightRear="true" headlights="true" indicatorLeft="true" indicatorRight="true" litNumberPlate="true" reverseDrivinglight="true" /></ModelDescription></Player>
+------------------------------------------------------------
+Traffic
+<Player name="Ego"><VehicleDef airDragCoefficient="0.34" distCoupling="3.536 0 0.385" distFront="3.536" distHeight="1.352" distHitch="-0.858 0 0.385" distLeft="0.904" distRear="0.858" distRight="0.904" enginePower="191000" frontSurfaceEffective="2.1" gradientPitchAngle="-1" gradientRollAngle="-1" mass="1705" maxDecel="-10" maxSpeed="69.444" maxSteering="0.46" maxTorque="322" overallEfficiency="0.75" rollingResistance="0.013" trackWidth="-1" wheelBase="2.536" wheelDiameter="0.63994" wheelDiameterDynamic="0.704" wheelDrive="wheel_drive_front" wheelSkewStiffness="12" /></Player>
+------------------------------------------------------------
+ModuleManager
+<SimCtrl><InitDone source="moduleMgr" /></SimCtrl>
+------------------------------------------------------------
+TaskControl
+<SimCtrl><LayoutFile filename="/home/vtd/VTD.2.2/Data/Projects/SampleProject/Scenarios/advtest/highway_01.xodr" /></SimCtrl>
+------------------------------------------------------------
+ModuleManager
+<SimCtrl><InitDone source="moduleMgr" /></SimCtrl>
+------------------------------------------------------------
+TaskControl
+<SimCtrl><LayoutFile filename="/home/vtd/VTD.2.2/Data/Projects/SampleProject/Scenarios/advtest/highway_01.xodr" /></SimCtrl>
+------------------------------------------------------------
+ModuleManager
+<SimCtrl><InitDone source="moduleMgr" /></SimCtrl>
+------------------------------------------------------------
+Traffic
+<Player name="Ego"><VehicleDef airDragCoefficient="0.34" distCoupling="3.536 0 0.385" distFront="3.536" distHeight="1.352" distHitch="-0.858 0 0.385" distLeft="0.904" distRear="0.858" distRight="0.904" enginePower="191000" frontSurfaceEffective="2.1" gradientPitchAngle="-1" gradientRollAngle="-1" mass="1705" maxDecel="-10" maxSpeed="69.444" maxSteering="0.46" maxTorque="322" overallEfficiency="0.75" rollingResistance="0.013" trackWidth="-1" wheelBase="2.536" wheelDiameter="0.63994" wheelDiameterDynamic="0.704" wheelDrive="wheel_drive_front" wheelSkewStiffness="12" /></Player>
+------------------------------------------------------------
+Traffic
+<Player name="Ego"><VehicleDef airDragCoefficient="0.34" distCoupling="3.536 0 0.385" distFront="3.536" distHeight="1.352" distHitch="-0.858 0 0.385" distLeft="0.904" distRear="0.858" distRight="0.904" enginePower="191000" frontSurfaceEffective="2.1" gradientPitchAngle="-1" gradientRollAngle="-1" mass="1705" maxDecel="-10" maxSpeed="69.444" maxSteering="0.46" maxTorque="322" overallEfficiency="0.75" rollingResistance="0.013" trackWidth="-1" wheelBase="2.536" wheelDiameter="0.63994" wheelDiameterDynamic="0.704" wheelDrive="wheel_drive_front" wheelSkewStiffness="12" /></Player>
+------------------------------------------------------------
+Traffic
+<Player name="Ego"><ModelDescription name="Car_AlfaRomeoBrera"><Mirrors><Mirror name="MirrorCenter" x="1.588" y="0" z="1.198" /><Mirror name="MirrorLeft" x="1.678" y="0.913" z="0.972" /><Mirror name="MirrorRight" x="1.678" y="-0.913" z="0.972" /></Mirrors><EyePoints><EyePoint name="Driver" x="1.203" y="0.428" z="1.094" /></EyePoints><LightSources><LightSource ID="DefaultHeadlight" name="HeadLightLeft" type="Headlight" x="3.316" y="0.438" z="0.562" /><LightSource ID="DefaultHeadlight" name="HeadLightRight" type="Headlight" x="3.316" y="-0.438" z="0.562" /><LightSource name="TaillightLeft" type="Taillight" x="-0.547" y="0.578" z="0.822" /><LightSource name="TaillightRight" type="Taillight" x="-0.547" y="-0.578" z="0.822" /></LightSources><Switches brakelights="true" daytimeRunningLight="true" driver="true" foglightFront="true" foglightRear="true" headlights="true" indicatorLeft="true" indicatorRight="true" litNumberPlate="true" reverseDrivinglight="true" /></ModelDescription></Player>
+------------------------------------------------------------
+Traffic
+<Set entity="player" name="Ego"><PosInertial hDeg="90" jumpToPos="true" x="13.0851593" y="15.38214493" z="0" /></Set>
+------------------------------------------------------------
+Traffic
+<Player name="New Player"><ModelDescription name="Car_AlfaRomeoBrera"><Mirrors><Mirror name="MirrorCenter" x="1.588" y="0" z="1.198" /><Mirror name="MirrorLeft" x="1.678" y="0.913" z="0.972" /><Mirror name="MirrorRight" x="1.678" y="-0.913" z="0.972" /></Mirrors><EyePoints><EyePoint name="Driver" x="1.203" y="0.428" z="1.094" /></EyePoints><LightSources><LightSource ID="DefaultHeadlight" name="HeadLightLeft" type="Headlight" x="3.316" y="0.438" z="0.562" /><LightSource ID="DefaultHeadlight" name="HeadLightRight" type="Headlight" x="3.316" y="-0.438" z="0.562" /><LightSource name="TaillightLeft" type="Taillight" x="-0.547" y="0.578" z="0.822" /><LightSource name="TaillightRight" type="Taillight" x="-0.547" y="-0.578" z="0.822" /></LightSources><Switches brakelights="true" daytimeRunningLight="true" driver="true" foglightFront="true" foglightRear="true" headlights="true" indicatorLeft="true" indicatorRight="true" litNumberPlate="true" reverseDrivinglight="true" /></ModelDescription></Player>
+------------------------------------------------------------
+Traffic
+<Player name="Ego"><VehicleDef airDragCoefficient="0.34" distCoupling="3.536 0 0.385" distFront="3.536" distHeight="1.352" distHitch="-0.858 0 0.385" distLeft="0.904" distRear="0.858" distRight="0.904" enginePower="191000" frontSurfaceEffective="2.1" gradientPitchAngle="-1" gradientRollAngle="-1" mass="1705" maxDecel="-10" maxSpeed="69.444" maxSteering="0.46" maxTorque="322" overallEfficiency="0.75" rollingResistance="0.013" trackWidth="-1" wheelBase="2.536" wheelDiameter="0.63994" wheelDiameterDynamic="0.704" wheelDrive="wheel_drive_front" wheelSkewStiffness="12" /></Player>
+------------------------------------------------------------
+TaskControl
+<SimCtrl><InitDone place="checkInitConfirmation" /></SimCtrl>
+------------------------------------------------------------
+ModuleManager
+<SimCtrl><InitDone source="moduleMgr" /></SimCtrl>
+------------------------------------------------------------
+Traffic
+<Player name="Ego"><VehicleDef airDragCoefficient="0.34" distCoupling="3.536 0 0.385" distFront="3.536" distHeight="1.352" distHitch="-0.858 0 0.385" distLeft="0.904" distRear="0.858" distRight="0.904" enginePower="191000" frontSurfaceEffective="2.1" gradientPitchAngle="-1" gradientRollAngle="-1" mass="1705" maxDecel="-10" maxSpeed="69.444" maxSteering="0.46" maxTorque="322" overallEfficiency="0.75" rollingResistance="0.013" trackWidth="-1" wheelBase="2.536" wheelDiameter="0.63994" wheelDiameterDynamic="0.704" wheelDrive="wheel_drive_front" wheelSkewStiffness="12" /></Player>
+------------------------------------------------------------
+Traffic
+<Player name="Ego"><VehicleDef airDragCoefficient="0.34" distCoupling="3.536 0 0.385" distFront="3.536" distHeight="1.352" distHitch="-0.858 0 0.385" distLeft="0.904" distRear="0.858" distRight="0.904" enginePower="191000" frontSurfaceEffective="2.1" gradientPitchAngle="-1" gradientRollAngle="-1" mass="1705" maxDecel="-10" maxSpeed="69.444" maxSteering="0.46" maxTorque="322" overallEfficiency="0.75" rollingResistance="0.013" trackWidth="-1" wheelBase="2.536" wheelDiameter="0.63994" wheelDiameterDynamic="0.704" wheelDrive="wheel_drive_front" wheelSkewStiffness="12" /></Player>
+------------------------------------------------------------
+Traffic
+<Player name="Ego"><ModelDescription name="Car_AlfaRomeoBrera"><Mirrors><Mirror name="MirrorCenter" x="1.588" y="0" z="1.198" /><Mirror name="MirrorLeft" x="1.678" y="0.913" z="0.972" /><Mirror name="MirrorRight" x="1.678" y="-0.913" z="0.972" /></Mirrors><EyePoints><EyePoint name="Driver" x="1.203" y="0.428" z="1.094" /></EyePoints><LightSources><LightSource ID="DefaultHeadlight" name="HeadLightLeft" type="Headlight" x="3.316" y="0.438" z="0.562" /><LightSource ID="DefaultHeadlight" name="HeadLightRight" type="Headlight" x="3.316" y="-0.438" z="0.562" /><LightSource name="TaillightLeft" type="Taillight" x="-0.547" y="0.578" z="0.822" /><LightSource name="TaillightRight" type="Taillight" x="-0.547" y="-0.578" z="0.822" /></LightSources><Switches brakelights="true" daytimeRunningLight="true" driver="true" foglightFront="true" foglightRear="true" headlights="true" indicatorLeft="true" indicatorRight="true" litNumberPlate="true" reverseDrivinglight="true" /></ModelDescription></Player>
+------------------------------------------------------------
+Traffic
+<Set entity="player" name="Ego"><PosInertial hDeg="90" jumpToPos="true" x="13.0851593" y="15.38214493" z="0" /></Set>
+------------------------------------------------------------
+Traffic
+<Player name="New Player"><ModelDescription name="Car_AlfaRomeoBrera"><Mirrors><Mirror name="MirrorCenter" x="1.588" y="0" z="1.198" /><Mirror name="MirrorLeft" x="1.678" y="0.913" z="0.972" /><Mirror name="MirrorRight" x="1.678" y="-0.913" z="0.972" /></Mirrors><EyePoints><EyePoint name="Driver" x="1.203" y="0.428" z="1.094" /></EyePoints><LightSources><LightSource ID="DefaultHeadlight" name="HeadLightLeft" type="Headlight" x="3.316" y="0.438" z="0.562" /><LightSource ID="DefaultHeadlight" name="HeadLightRight" type="Headlight" x="3.316" y="-0.438" z="0.562" /><LightSource name="TaillightLeft" type="Taillight" x="-0.547" y="0.578" z="0.822" /><LightSource name="TaillightRight" type="Taillight" x="-0.547" y="-0.578" z="0.822" /></LightSources><Switches brakelights="true" daytimeRunningLight="true" driver="true" foglightFront="true" foglightRear="true" headlights="true" indicatorLeft="true" indicatorRight="true" litNumberPlate="true" reverseDrivinglight="true" /></ModelDescription></Player>
+------------------------------------------------------------
+Traffic
+<Player name="Ego"><VehicleDef airDragCoefficient="0.34" distCoupling="3.536 0 0.385" distFront="3.536" distHeight="1.352" distHitch="-0.858 0 0.385" distLeft="0.904" distRear="0.858" distRight="0.904" enginePower="191000" frontSurfaceEffective="2.1" gradientPitchAngle="-1" gradientRollAngle="-1" mass="1705" maxDecel="-10" maxSpeed="69.444" maxSteering="0.46" maxTorque="322" overallEfficiency="0.75" rollingResistance="0.013" trackWidth="-1" wheelBase="2.536" wheelDiameter="0.63994" wheelDiameterDynamic="0.704" wheelDrive="wheel_drive_front" wheelSkewStiffness="12" /></Player>
+------------------------------------------------------------
+TaskControl
+<SimCtrl><InitDone place="checkInitConfirmation" /></SimCtrl>
+------------------------------------------------------------
+VT-GUI
+<SimCtrl><Project name="SampleProject" path="/home/vtd/VTD.2.2/Data/Projects/Current" /></SimCtrl>
+------------------------------------------------------------
+VT-GUI
+<SimCtrl><UnloadSensors /><LoadScenario filename="/home/vtd/VTD.2.2/Data/Projects/Current/Scenarios/advtest/highway.xml" /><Start mode="operation" /></SimCtrl>
+------------------------------------------------------------
+VT-GUI
+<Environment><Friction value="1.000000" /><Date day="1" month="6" year="2008" /><TimeOfDay headlights="auto" timezone="0" value="50400" /><Sky cloudState="0/8" visibility="100000.000000" /><Precipitation intensity="0.000000" type="none" /><Road effectScale="0.500000" state="dry" /></Environment>
+------------------------------------------------------------
+VT-GUI
+<Camera name="VIEW_CAMERA" showOwner="false"><Frustum far="1500.000000" fovHor="40.000000" fovVert="30.000000" near="1.000000" offsetHor="0.000000" offsetVert="0.000000" /><PosEyepoint /><ViewRelative dh="0.000000" dp="0.000000" dr="0.000000" /><Set /></Camera>
+------------------------------------------------------------
+VT-GUI
+<Display><Database enable="true" streetLamps="false" /><VistaOverlay enable="false" /></Display>
+------------------------------------------------------------
+VT-GUI
+<VIL><Imu dbElevation="true" /></VIL>
+------------------------------------------------------------
+VT-GUI
+<VIL><EyepointOffset hDeg="0.000000" pDeg="0.000000" rDeg="0.000000" x="0.000000" y="0.000000" z="0.000000" /></VIL>
+------------------------------------------------------------
+TaskControl
+<SimCtrl><Run currentState="6" /></SimCtrl>
+------------------------------------------------------------
+VT-GUI
+<SimCtrl><Project name="SampleProject" path="/home/vtd/VTD.2.2/Data/Projects/Current" /></SimCtrl>
+------------------------------------------------------------
+VT-GUI
+<SimCtrl><UnloadSensors /><LoadScenario filename="/home/vtd/VTD.2.2/Data/Projects/Current/Scenarios/advtest/highway.xml" /><Start mode="operation" /></SimCtrl>
+------------------------------------------------------------
+VT-GUI
+<Environment><Friction value="1.000000" /><Date day="1" month="6" year="2008" /><TimeOfDay headlights="auto" timezone="0" value="50400" /><Sky cloudState="0/8" visibility="100000.000000" /><Precipitation intensity="0.000000" type="none" /><Road effectScale="0.500000" state="dry" /></Environment>
+------------------------------------------------------------
+VT-GUI
+<Camera name="VIEW_CAMERA" showOwner="false"><Frustum far="1500.000000" fovHor="40.000000" fovVert="30.000000" near="1.000000" offsetHor="0.000000" offsetVert="0.000000" /><PosEyepoint /><ViewRelative dh="0.000000" dp="0.000000" dr="0.000000" /><Set /></Camera>
+------------------------------------------------------------
+VT-GUI
+<Display><Database enable="true" streetLamps="false" /><VistaOverlay enable="false" /></Display>
+------------------------------------------------------------
+VT-GUI
+<VIL><Imu dbElevation="true" /></VIL>
+------------------------------------------------------------
+VT-GUI
+<VIL><EyepointOffset hDeg="0.000000" pDeg="0.000000" rDeg="0.000000" x="0.000000" y="0.000000" z="0.000000" /></VIL>
+------------------------------------------------------------
+TaskControl
+<SimCtrl><Run currentState="6" /></SimCtrl>
+------------------------------------------------------------
+viTrafficDyn
+<Player name="Ego"><Driver ctrlLatLong="ghostdriver" /></Player>
+------------------------------------------------------------
+viTrafficDyn
+<Player name="Ego"><Driver ctrlLatLong="ghostdriver" /></Player>
+------------------------------------------------------------
+VT-GUI
+<SimCtrl><Pause /></SimCtrl>
+------------------------------------------------------------
+VT-GUI
+<SimCtrl><Pause /></SimCtrl>
+------------------------------------------------------------
+TaskControl
+<SimCtrl><Run currentState="3" /></SimCtrl>
+------------------------------------------------------------
+VT-GUI
+<SimCtrl><Step size="10" /></SimCtrl>
+------------------------------------------------------------
+TaskControl
+<SimCtrl><Run currentState="3" /></SimCtrl>
+------------------------------------------------------------
+VT-GUI
+<SimCtrl><Step size="10" /></SimCtrl>
+
+
+

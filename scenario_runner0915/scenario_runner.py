@@ -88,7 +88,6 @@ class ScenarioRunner(object):
         Setup ScenarioManager
         """
         self._args = args
-
         if args.timeout:
             self.client_timeout = float(args.timeout)
 

@@ -39,15 +39,17 @@ from srunner.scenariomanager.scenarioatomics.atomic_criteria import (CollisionTe
                                                                      MinimumSpeedRouteTest)
 
 from srunner.scenarios.basic_scenario import BasicScenario
-# from srunner.scenarios.background_activity import BackgroundBehavior
+from srunner.scenarios.background_activity import BackgroundBehavior
 from srunner.scenarios.BAtrafficflow import BAtrafficflow
+
 from srunner.scenariomanager.weather_sim import RouteWeatherBehavior
 from srunner.scenariomanager.lights_sim import RouteLightsBehavior
 from srunner.scenariomanager.timer import RouteTimeoutBehavior
 
 from srunner.tools.route_parser import RouteParser, DIST_THRESHOLD
 from srunner.tools.route_manipulation import interpolate_trajectory
-
+# from vtd_adv_lib.oasis_manager01 import ADV_Manager
+from vtd_adv_lib_529.vtd_manager_529_oasis import ADV_Manager
 
 SECONDS_GIVEN_PER_METERS = 0.4
 
@@ -302,7 +304,7 @@ class RouteScenario(BasicScenario):
         # Add the Background Activity
         # behavior.add_child(BackgroundBehavior(self.ego_vehicles[0], name="BackgroundActivity"))
         behavior.add_child(BAtrafficflow(self.ego_vehicles[0], name="BAtrifficflow"))
-
+        behavior.add_child(ADV_Manager(self.ego_vehicles[0], name="ADV_Manager"))
         behavior.add_children(scenario_behaviors)
         return behavior
 

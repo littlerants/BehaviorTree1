@@ -1,0 +1,418 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<OpenSCENARIO>
+	<FileHeader revMajor="1" revMinor="0" date="2024-05-27T10:46:27" description="adv_test_scenario_copy" author="oasis" />
+	<CatalogLocations />
+	<RoadNetwork>
+		<LogicFile filepath="Town05" />
+	</RoadNetwork>
+	<Entities>
+		<ScenarioObject name="ego_vehicle" />
+		<ScenarioObject name="vehicle_001">
+			<Vehicle name="vehicle.audi.a2" vehicleCategory="car">
+				<BoundingBox>
+					<Center x="0.9" y="0" z="0.75" />
+					<Dimensions width="1.8" length="3.8" height="1.5" />
+				</BoundingBox>
+				<Performance maxSpeed="54" maxAcceleration="5.2" maxDeceleration="8" />
+				<Axles>
+					<FrontAxle maxSteering="1.22" wheelDiameter="0.68" trackWidth="1.8" positionX="1.9" positionZ="0.34" />
+					<RearAxle maxSteering="1.22" wheelDiameter="0.68" trackWidth="1.8" positionX="1.9" positionZ="0.34" />
+				</Axles>
+				<Properties>
+					<Property name="type" value="simulation" />
+				</Properties>
+			</Vehicle>
+		</ScenarioObject>
+		<ScenarioObject name="vehicle_002">
+			<Vehicle name="vehicle.audi.a2" vehicleCategory="car">
+				<BoundingBox>
+					<Center x="0.9" y="0" z="0.75" />
+					<Dimensions width="1.8" length="3.8" height="1.5" />
+				</BoundingBox>
+				<Performance maxSpeed="54" maxAcceleration="5.2" maxDeceleration="8" />
+				<Axles>
+					<FrontAxle maxSteering="1.22" wheelDiameter="0.68" trackWidth="1.8" positionX="1.9" positionZ="0.34" />
+					<RearAxle maxSteering="1.22" wheelDiameter="0.68" trackWidth="1.8" positionX="1.9" positionZ="0.34" />
+				</Axles>
+				<Properties>
+					<Property name="type" value="simulation" />
+				</Properties>
+			</Vehicle>
+		</ScenarioObject>
+		<ScenarioObject name="vehicle_003">
+			<Vehicle name="vehicle.audi.a2" vehicleCategory="car">
+				<BoundingBox>
+					<Center x="0.9" y="0" z="0.75" />
+					<Dimensions width="1.8" length="3.8" height="1.5" />
+				</BoundingBox>
+				<Performance maxSpeed="54" maxAcceleration="5.2" maxDeceleration="8" />
+				<Axles>
+					<FrontAxle maxSteering="1.22" wheelDiameter="0.68" trackWidth="1.8" positionX="1.9" positionZ="0.34" />
+					<RearAxle maxSteering="1.22" wheelDiameter="0.68" trackWidth="1.8" positionX="1.9" positionZ="0.34" />
+				</Axles>
+				<Properties>
+					<Property name="type" value="simulation" />
+				</Properties>
+			</Vehicle>
+		</ScenarioObject>
+		<ScenarioObject name="vehicle_004">
+			<Vehicle name="vehicle.audi.a2" vehicleCategory="car">
+				<BoundingBox>
+					<Center x="0.9" y="0" z="0.75" />
+					<Dimensions width="1.8" length="3.8" height="1.5" />
+				</BoundingBox>
+				<Performance maxSpeed="54" maxAcceleration="5.2" maxDeceleration="8" />
+				<Axles>
+					<FrontAxle maxSteering="1.22" wheelDiameter="0.68" trackWidth="1.8" positionX="1.9" positionZ="0.34" />
+					<RearAxle maxSteering="1.22" wheelDiameter="0.68" trackWidth="1.8" positionX="1.9" positionZ="0.34" />
+				</Axles>
+				<Properties>
+					<Property name="type" value="simulation" />
+				</Properties>
+			</Vehicle>
+		</ScenarioObject>
+		<ScenarioObject name="vehicle_005">
+			<Vehicle name="vehicle.audi.a2" vehicleCategory="car">
+				<BoundingBox>
+					<Center x="0.9" y="0" z="0.75" />
+					<Dimensions width="1.8" length="3.8" height="1.5" />
+				</BoundingBox>
+				<Performance maxSpeed="54" maxAcceleration="5.2" maxDeceleration="8" />
+				<Axles>
+					<FrontAxle maxSteering="1.22" wheelDiameter="0.68" trackWidth="1.8" positionX="1.9" positionZ="0.34" />
+					<RearAxle maxSteering="1.22" wheelDiameter="0.68" trackWidth="1.8" positionX="1.9" positionZ="0.34" />
+				</Axles>
+				<Properties>
+					<Property name="type" value="simulation" />
+				</Properties>
+			</Vehicle>
+		</ScenarioObject>
+		<ScenarioObject name="vehicle_006">
+			<Vehicle name="vehicle.audi.a2" vehicleCategory="car">
+				<BoundingBox>
+					<Center x="0.9" y="0" z="0.75" />
+					<Dimensions width="1.8" length="3.8" height="1.5" />
+				</BoundingBox>
+				<Performance maxSpeed="54" maxAcceleration="5.2" maxDeceleration="8" />
+				<Axles>
+					<FrontAxle maxSteering="1.22" wheelDiameter="0.68" trackWidth="1.8" positionX="1.9" positionZ="0.34" />
+					<RearAxle maxSteering="1.22" wheelDiameter="0.68" trackWidth="1.8" positionX="1.9" positionZ="0.34" />
+				</Axles>
+				<Properties>
+					<Property name="type" value="simulation" />
+				</Properties>
+			</Vehicle>
+		</ScenarioObject>
+		<ScenarioObject name="vehicle_007">
+			<Vehicle name="vehicle.audi.a2" vehicleCategory="car">
+				<BoundingBox>
+					<Center x="0.9" y="0" z="0.75" />
+					<Dimensions width="1.8" length="3.8" height="1.5" />
+				</BoundingBox>
+				<Performance maxSpeed="54" maxAcceleration="5.2" maxDeceleration="8" />
+				<Axles>
+					<FrontAxle maxSteering="1.22" wheelDiameter="0.68" trackWidth="1.8" positionX="1.9" positionZ="0.34" />
+					<RearAxle maxSteering="1.22" wheelDiameter="0.68" trackWidth="1.8" positionX="1.9" positionZ="0.34" />
+				</Axles>
+				<Properties>
+					<Property name="type" value="simulation" />
+				</Properties>
+			</Vehicle>
+		</ScenarioObject>
+		<ScenarioObject name="vehicle_008">
+			<Vehicle name="vehicle.audi.a2" vehicleCategory="car">
+				<BoundingBox>
+					<Center x="0.9" y="0" z="0.75" />
+					<Dimensions width="1.8" length="3.8" height="1.5" />
+				</BoundingBox>
+				<Performance maxSpeed="54" maxAcceleration="5.2" maxDeceleration="8" />
+				<Axles>
+					<FrontAxle maxSteering="1.22" wheelDiameter="0.68" trackWidth="1.8" positionX="1.9" positionZ="0.34" />
+					<RearAxle maxSteering="1.22" wheelDiameter="0.68" trackWidth="1.8" positionX="1.9" positionZ="0.34" />
+				</Axles>
+				<Properties>
+					<Property name="type" value="simulation" />
+				</Properties>
+			</Vehicle>
+		</ScenarioObject>
+	</Entities>
+	<Storyboard>
+		<Init>
+			<Actions>
+				<GlobalAction>
+					<EnvironmentAction>
+						<Environment name="Environment1">
+							<TimeOfDay animation="true" dateTime="2020-09-23T07:20:00" />
+							<Weather cloudState="free">
+								<Sun intensity="50000.0" azimuth="2.792526803190927" elevation="0.3490658503988659" />
+								<Fog visualRange="10000" />
+								<Precipitation precipitationType="dry" intensity="0" />
+							</Weather>
+							<RoadCondition frictionScaleFactor="1.0" />
+						</Environment>
+					</EnvironmentAction>
+				</GlobalAction>
+				<Private entityRef="ego_vehicle">
+					<PrivateAction>
+						<ControllerAction>
+							<AssignControllerAction>
+								<Controller name="HeroAgent">
+									<Properties>
+										<Property name="module" value="external_control" />
+									</Properties>
+								</Controller>
+							</AssignControllerAction>
+							<OverrideControllerValueAction>
+								<Throttle value="0" active="false" />
+								<Brake value="0" active="false" />
+								<Clutch value="0" active="false" />
+								<ParkingBrake value="0" active="false" />
+								<SteeringWheel value="0" active="false" />
+								<Gear number="0" active="false" />
+							</OverrideControllerValueAction>
+						</ControllerAction>
+					</PrivateAction>
+					<PrivateAction>
+						<LongitudinalAction>
+							<SpeedAction>
+								<SpeedActionDynamics dynamicsShape="step" value="0" dynamicsDimension="time" />
+								<SpeedActionTarget>
+									<AbsoluteTargetSpeed value="0" />
+								</SpeedActionTarget>
+							</SpeedAction>
+						</LongitudinalAction>
+					</PrivateAction>
+					<PrivateAction>
+						<TeleportAction>
+							<Position>
+								<WorldPosition x="-229.662" y="-62.989" z="9.976" h="1.5566591598537425" p="6.28224282938351" r="0.0" />
+							</Position>
+						</TeleportAction>
+					</PrivateAction>
+				</Private>
+				<Private entityRef="vehicle_001">
+					<PrivateAction>
+						<LongitudinalAction>
+							<SpeedAction>
+								<SpeedActionDynamics dynamicsShape="step" value="0" dynamicsDimension="time" />
+								<SpeedActionTarget>
+									<AbsoluteTargetSpeed value="0" />
+								</SpeedActionTarget>
+							</SpeedAction>
+						</LongitudinalAction>
+					</PrivateAction>
+					<PrivateAction>
+						<TeleportAction>
+							<Position>
+								<WorldPosition x="-233.017" y="-48.484" z="10" h="1.5566591598537425" p="0.0" r="0.0" />
+							</Position>
+						</TeleportAction>
+					</PrivateAction>
+				</Private>
+				<Private entityRef="vehicle_002">
+					<PrivateAction>
+						<LongitudinalAction>
+							<SpeedAction>
+								<SpeedActionDynamics dynamicsShape="step" value="0" dynamicsDimension="time" />
+								<SpeedActionTarget>
+									<AbsoluteTargetSpeed value="0" />
+								</SpeedActionTarget>
+							</SpeedAction>
+						</LongitudinalAction>
+					</PrivateAction>
+					<PrivateAction>
+						<TeleportAction>
+							<Position>
+								<WorldPosition x="-225.871" y="-40.373" z="10" h="1.5566591598537425" p="0.0" r="0.0" />
+							</Position>
+						</TeleportAction>
+					</PrivateAction>
+				</Private>
+				<Private entityRef="vehicle_003">
+					<PrivateAction>
+						<LongitudinalAction>
+							<SpeedAction>
+								<SpeedActionDynamics dynamicsShape="step" value="0" dynamicsDimension="time" />
+								<SpeedActionTarget>
+									<AbsoluteTargetSpeed value="0" />
+								</SpeedActionTarget>
+							</SpeedAction>
+						</LongitudinalAction>
+					</PrivateAction>
+					<PrivateAction>
+						<TeleportAction>
+							<Position>
+								<WorldPosition x="-229.251" y="-26.565" z="10" h="1.5566591598537425" p="0.0" r="0.0" />
+							</Position>
+						</TeleportAction>
+					</PrivateAction>
+				</Private>
+				<Private entityRef="vehicle_004">
+					<PrivateAction>
+						<LongitudinalAction>
+							<SpeedAction>
+								<SpeedActionDynamics dynamicsShape="step" value="0" dynamicsDimension="time" />
+								<SpeedActionTarget>
+									<AbsoluteTargetSpeed value="0" />
+								</SpeedActionTarget>
+							</SpeedAction>
+						</LongitudinalAction>
+					</PrivateAction>
+					<PrivateAction>
+						<TeleportAction>
+							<Position>
+								<WorldPosition x="-233.113" y="-76.101" z="9.95" h="1.5566591598537425" p="6.281230538417352" r="0.0" />
+							</Position>
+						</TeleportAction>
+					</PrivateAction>
+				</Private>
+				<Private entityRef="vehicle_005">
+					<PrivateAction>
+						<LongitudinalAction>
+							<SpeedAction>
+								<SpeedActionDynamics dynamicsShape="step" value="0" dynamicsDimension="time" />
+								<SpeedActionTarget>
+									<AbsoluteTargetSpeed value="0" />
+								</SpeedActionTarget>
+							</SpeedAction>
+						</LongitudinalAction>
+					</PrivateAction>
+					<PrivateAction>
+						<TeleportAction>
+							<Position>
+								<WorldPosition x="-226.354" y="-84.116" z="9.935" h="1.5566591598537425" p="6.280602219886634" r="0.0" />
+							</Position>
+						</TeleportAction>
+					</PrivateAction>
+				</Private>
+				<Private entityRef="vehicle_006">
+					<PrivateAction>
+						<LongitudinalAction>
+							<SpeedAction>
+								<SpeedActionDynamics dynamicsShape="step" value="0" dynamicsDimension="time" />
+								<SpeedActionTarget>
+									<AbsoluteTargetSpeed value="0" />
+								</SpeedActionTarget>
+							</SpeedAction>
+						</LongitudinalAction>
+					</PrivateAction>
+					<PrivateAction>
+						<TeleportAction>
+							<Position>
+								<WorldPosition x="-229.927" y="-93.675" z="9.916" h="1.5566591598537425" p="6.279869181600797" r="0.0" />
+							</Position>
+						</TeleportAction>
+					</PrivateAction>
+				</Private>
+				<Private entityRef="vehicle_007">
+					<PrivateAction>
+						<LongitudinalAction>
+							<SpeedAction>
+								<SpeedActionDynamics dynamicsShape="step" value="0" dynamicsDimension="time" />
+								<SpeedActionTarget>
+									<AbsoluteTargetSpeed value="0" />
+								</SpeedActionTarget>
+							</SpeedAction>
+						</LongitudinalAction>
+					</PrivateAction>
+					<PrivateAction>
+						<TeleportAction>
+							<Position>
+								<WorldPosition x="-225.871" y="-63.355" z="9.975" h="1.5566591598537425" p="6.28220792279847" r="0.0" />
+							</Position>
+						</TeleportAction>
+					</PrivateAction>
+				</Private>
+				<Private entityRef="vehicle_008">
+					<PrivateAction>
+						<LongitudinalAction>
+							<SpeedAction>
+								<SpeedActionDynamics dynamicsShape="step" value="0" dynamicsDimension="time" />
+								<SpeedActionTarget>
+									<AbsoluteTargetSpeed value="0" />
+								</SpeedActionTarget>
+							</SpeedAction>
+						</LongitudinalAction>
+					</PrivateAction>
+					<PrivateAction>
+						<TeleportAction>
+							<Position>
+								<WorldPosition x="-233.113" y="-59.589" z="9.983" h="1.5566591598537425" p="6.282504628771309" r="0.0" />
+							</Position>
+						</TeleportAction>
+					</PrivateAction>
+				</Private>
+			</Actions>
+		</Init>
+		<Story name="MyStory">
+			<Act name="Act1">
+				<ManeuverGroup maximumExecutionCount="1" name="ManeuverGroup1">
+					<Actors selectTriggeringEntities="false">
+						<EntityRef entityRef="ego_vehicle" />
+					</Actors>
+				</ManeuverGroup>
+				<StartTrigger>
+					<ConditionGroup>
+						<Condition name="ActStartCondition" delay="0" conditionEdge="rising">
+							<ByValueCondition>
+								<SimulationTimeCondition value="0" rule="greaterThan" />
+							</ByValueCondition>
+						</Condition>
+					</ConditionGroup>
+				</StartTrigger>
+				<StopTrigger>
+					<ConditionGroup>
+						<Condition name="timeout" delay="0" conditionEdge="rising">
+							<ByValueCondition>
+								<SimulationTimeCondition value="120" rule="greaterThan" />
+							</ByValueCondition>
+						</Condition>
+					</ConditionGroup>
+					<ConditionGroup>
+						<Condition name="collision_vehicle" delay="0" conditionEdge="rising">
+							<ByEntityCondition>
+								<TriggeringEntities triggeringEntitiesRule="any">
+									<EntityRef entityRef="ego_vehicle" />
+								</TriggeringEntities>
+								<EntityCondition>
+									<CollisionCondition>
+										<ByType type="vehicle" />
+									</CollisionCondition>
+								</EntityCondition>
+							</ByEntityCondition>
+						</Condition>
+					</ConditionGroup>
+					<ConditionGroup>
+						<Condition name="collision_pedestrian" delay="0" conditionEdge="rising">
+							<ByEntityCondition>
+								<TriggeringEntities triggeringEntitiesRule="any">
+									<EntityRef entityRef="ego_vehicle" />
+								</TriggeringEntities>
+								<EntityCondition>
+									<CollisionCondition>
+										<ByType type="pedestrian" />
+									</CollisionCondition>
+								</EntityCondition>
+							</ByEntityCondition>
+						</Condition>
+					</ConditionGroup>
+					<ConditionGroup>
+						<Condition name="collision_misobject" delay="0" conditionEdge="rising">
+							<ByEntityCondition>
+								<TriggeringEntities triggeringEntitiesRule="any">
+									<EntityRef entityRef="ego_vehicle" />
+								</TriggeringEntities>
+								<EntityCondition>
+									<CollisionCondition>
+										<ByType type="miscellaneous" />
+									</CollisionCondition>
+								</EntityCondition>
+							</ByEntityCondition>
+						</Condition>
+					</ConditionGroup>
+				</StopTrigger>
+			</Act>
+		</Story>
+		<StopTrigger />
+	</Storyboard>
+</OpenSCENARIO>
