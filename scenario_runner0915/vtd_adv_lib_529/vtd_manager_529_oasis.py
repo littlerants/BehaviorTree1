@@ -18,14 +18,14 @@ from shapely.geometry import Polygon #多边形
 # from gym_sumo.road.lane import LineType, PolyLaneFixedWidth
 import py_trees
 import carla
-from  vtd_adv_lib_529.global1 import GLOBAL
-from  vtd_adv_lib_529.model_namager import ModelManager
-from  vtd_adv_lib_529.scenario import SCENARIO, PREPARE
-from  vtd_adv_lib_529.object import OBJECT
-from  vtd_adv_lib_529.utils import *
-from  vtd_adv_lib_529.head import *
-from  vtd_adv_lib_529.mobil import LATCHECK
-from  vtd_adv_lib_529.config import CONFIG
+from  global1 import GLOBAL
+from  model_namager import ModelManager
+from  scenario import SCENARIO, PREPARE
+from  object import OBJECT
+from  utils import *
+from  head import *
+from  mobil import LATCHECK
+from  config import (CONFIG)
 import pandas as pd
 import logging
 
@@ -215,13 +215,16 @@ class ADV_Manager(AtomicBehavior):
         static_objects = []
         other_vehicles = []
         traffic_lights = []
+        self.gl.alive_actors = []
         for other_vehicle in self.world.get_actors().filter('vehicle.*'):
+            self.gl.alive_actors.append(other_vehicle.id)
             if calculate_distance(other_vehicle, self.ego_vehicle) < 50 and \
                     other_vehicle.attributes['role_name'] != "ego_vehicle":
-                if get_speed(other_vehicle) > 0:
-                    other_vehicles.append(other_vehicle)
-                else:
-                    static_objects.append(other_vehicle)
+                other_vehicles.append(other_vehicle)
+                # if get_speed(other_vehicle) > 0:
+                #     other_vehicles.append(other_vehicle)
+                # else:
+                #     static_objects.append(other_vehicle)
         for light in self.world.get_actors().filter('traffic.traffic_light*'):
             if calculate_distance(light, self.ego_vehicle) < 50:
                 traffic_lights.append(light)
@@ -253,9 +256,8 @@ class ADV_Manager(AtomicBehavior):
     # 初始化或更新目标对象
     def create_objs(self):
 
-        objects, traffic_lights = self.update_info()
-        for i in objects:
-            self._tm.force_lane_change(i, False)
+        self.gl.carla_objects, traffic_lights = self.update_info()
+        print("+++++++++++++++++++++++++++++++++++++++++++++++++self.gl.alive_actors:",self.gl.alive_actors)
         ego_wp = self._map.get_waypoint(self.ego_vehicle.get_location())
         # 车辆朝向 左手坐标系
         pos_h = (-self.ego_vehicle.get_transform().rotation.yaw/180)*np.pi
@@ -300,9 +302,11 @@ class ADV_Manager(AtomicBehavior):
         # 遍历self.gl.fram_data['Objects'] 中探测到的目标，并初始化或更新这些目标
         
         # print("self.gl.fram_data:",self.gl.fram_data)
-        for i in objects:
+        for i in self.gl.carla_objects:
+            print("carla origin values:", i.id, i.get_location())
             if  i.id == self.ego_vehicle.id:
                 continue
+            # print("carla origin values:",i.id , i.get_location())
             location = self.get_local_location(self.ego_vehicle, i.get_location())
             i_wp = self._map.get_waypoint(i.get_location())
             pos_h = (-i.get_transform().rotation.yaw/180)* np.pi
@@ -351,7 +355,9 @@ class ADV_Manager(AtomicBehavior):
         #                  pos_h=self.static_objects_config[i.name]['pos_h'],static = True
         #                  )
         #         i.trans_cood2(self.gl.ego, True, True, True, rotate=1)
+        print("----------------主车车辆坐标系-----------------")
         print("---------------------ego info-----------------------:")
+
         self.gl.ego.show()
         for i in self.gl.objects:
             print("----------------------------------111")
@@ -444,6 +450,11 @@ class ADV_Manager(AtomicBehavior):
             ego_vx,ego_vy = trans2angle(self.gl.ego.vx, self.gl.ego.vy,self.gl.ego.pos_h)
             for i in self.gl.objects:
                 #
+
+                if i.id not in self.gl.alive_actors:
+                    pop_index.append(index)
+                    index+=1
+                    continue
                 real_vx = i.vx + ego_vx
                 real_vy = i.vy + ego_vy
                 if real_vx < 0.2 and ego_vx > 2:
@@ -516,6 +527,7 @@ class ADV_Manager(AtomicBehavior):
             return None
         # print("ADV---self.gl.adv.name:",self.gl.adv.name)
         # 从目标物维护列表中删除对抗车，以及较远的目标
+
         pop_index  =sorted(pop_index,reverse=True)
         # print("ADV---pop index:",pop_index)
         # print("ADV---self.gl.objects_set:",self.gl.objects_set)
@@ -685,7 +697,51 @@ class ADV_Manager(AtomicBehavior):
             self.slower_act()
         elif self.ctrl_signal['lon'] == 'IDLE':
             self.idle_act()
+    def exec_lon_act_carla(self):
+        print("ADV--- real  contral", self.ctrl_signal)
+        # if self.ctrl_signal['lon'] == 'FASTER':
+        #     self.faster_act()
+        # elif self.ctrl_signal['lon'] == 'SLOWER':
+        #     self.slower_act()
+        # elif self.ctrl_signal['lon'] == 'IDLE':
+        #     self.idle_act()
 
+    def get_carla_actor(self,id):
+        for i in self.gl.carla_objects:
+            if i.id == id:
+                return i
+        return None
+    def exec_lat_act_carla(self):
+        # self.ctrl_signal['lat'] = "RIGHT_2"
+        # 车道偏移offset， 如果对抗车在安全距离以内L
+        gain = 0
+        lane_off_set = 1.4
+        if self.dis < self.safe_dis :
+            gain = random.uniform(0.2,0.6)
+        lane_off_set += gain
+        carla_adv_actor = self.get_carla_actor(self.gl.adv.id)
+        if self.ctrl_signal['lat']  == "LANE_LEFT"  :
+            # self.lane_left_act()
+            self._tm.force_lane_change(carla_adv_actor,False)
+            return True
+        elif self.ctrl_signal['lat'] == "LEFT_2" :
+            # self.left_2_act(lane_off_set)
+            self._tm.force_lane_change(carla_adv_actor, False)
+            return True
+        elif self.ctrl_signal['lat'] == "LANE_RIGHT" :
+            # self.lane_right_act()
+            self._tm.force_lane_change(carla_adv_actor, True)
+            return True
+        elif self.ctrl_signal['lat'] == "RIGHT_2":
+            # self.right_2_act(lane_off_set)
+            self._tm.force_lane_change(carla_adv_actor, True)
+            return True
+        else:
+            # self.gl.scp.auto(self.gl.adv.name)
+            self.keep_time = -1
+            self.keep_time_index = -1
+            self.action_marking = ""
+            return False
     # 横向执行函数
     def exec_lat_act(self):
         # self.ctrl_signal['lat'] = "RIGHT_2"
@@ -714,7 +770,52 @@ class ADV_Manager(AtomicBehavior):
             self.keep_time_index = -1
             self.action_marking = ""
             return False
+    def exec_lat_act(self):
+        # self.ctrl_signal['lat'] = "RIGHT_2"
+        # 车道偏移offset， 如果对抗车在安全距离以内L
+        gain = 0
+        lane_off_set = 1.4
+        if self.dis < self.safe_dis :
+            gain = random.uniform(0.2,0.6)
+        lane_off_set += gain
 
+        if self.ctrl_signal['lat']  == "LANE_LEFT"  :
+            self.lane_left_act()
+            return True
+        elif self.ctrl_signal['lat'] == "LEFT_2" :
+            self.left_2_act(lane_off_set)
+            return True
+        elif self.ctrl_signal['lat'] == "LANE_RIGHT" :
+            self.lane_right_act()
+            return True
+        elif self.ctrl_signal['lat'] == "RIGHT_2":
+            self.right_2_act(lane_off_set)
+            return True
+        else:
+            self.gl.scp.auto(self.gl.adv.name)
+            self.keep_time = -1
+            self.keep_time_index = -1
+            self.action_marking = ""
+            return False
+    def stop_lat_act_carla(self,flag = True):
+        # 执行完横向动作(BLANK和IDLE除外)之后，需要进入BLANK缓冲期
+        if self.action_marking in ["BLANK","IDLE",""]:
+            self.keep_time = -1
+            self.keep_time_index = -1
+            self.action_marking = ''
+        else:
+            if self.action_marking in ["LANE_RIGHT","LANE_LEFT"] and self.gl.adv.lane_id != self.gl.ego.lane_id:
+                vx,vy = trans2angle(self.gl.adv.vx,self.gl.adv.vy,self.gl.adv.pos_h)
+                go2dis = (abs(self.gl.ego.pos_x)/ ((self.gl.ego.vx + vx)  if (self.gl.ego.vx + vx)  > 0 else    0.1)    ) * vx + abs(self.gl.ego.pos_x)
+                time1_fram_num = int( go2dis/(self.gl.ego.vx + vx)*20 )
+                print("ADV--- time_fram_num:",time1_fram_num)
+                self.keep_time = self.ACTIONS_DUR["BLANK"] + time1_fram_num if time1_fram_num < 220 else 220
+            else:
+                self.keep_time = self.ACTIONS_DUR["BLANK"] + 10
+            self.keep_time_index = -1
+            self.action_marking = "BLANK"
+        # 执行纵向指令
+        self.exec_lon_act_carla()
     def stop_lat_act(self,flag = True):
         # 执行完横向动作(BLANK和IDLE除外)之后，需要进入BLANK缓冲期
         if self.action_marking in ["BLANK","IDLE",""]:
@@ -823,15 +924,15 @@ class ADV_Manager(AtomicBehavior):
             right_lane = 0
             return True
         # 截至路处理
-        adv_current_lon, _ = self.gl.ego.lane.local_coordinates(np.array([self.gl.adv.pos_x, self.gl.adv.pos_y]))
-        if self.ctrl_signal['lat'] == 'LANE_LEFT' and left_lane and\
-                self.map.openDriveXml.getRoad(self.gl.adv.roadId).lanes.lane_sections[0].lane_width_dict[
-                    self.gl.adv.leftLaneId][int(adv_current_lon)] < self.gl.norm_lane_width*0.95:
-            return True
-        if self.ctrl_signal['lat'] == 'LANE_RIGHT' and right_lane and\
-                self.map.openDriveXml.getRoad(self.gl.adv.roadId).lanes.lane_sections[0].lane_width_dict[
-                    self.gl.adv.rightLaneId][int(adv_current_lon)] < self.gl.norm_lane_width*0.95:
-            return True
+        # adv_current_lon, _ = self.gl.ego.lane.local_coordinates(np.array([self.gl.adv.pos_x, self.gl.adv.pos_y]))
+        # if self.ctrl_signal['lat'] == 'LANE_LEFT' and left_lane and\
+        #         self.map.openDriveXml.getRoad(self.gl.adv.roadId).lanes.lane_sections[0].lane_width_dict[
+        #             self.gl.adv.leftLaneId][int(adv_current_lon)] < self.gl.norm_lane_width*0.95:
+        #     return True
+        # if self.ctrl_signal['lat'] == 'LANE_RIGHT' and right_lane and\
+        #         self.map.openDriveXml.getRoad(self.gl.adv.roadId).lanes.lane_sections[0].lane_width_dict[
+        #             self.gl.adv.rightLaneId][int(adv_current_lon)] < self.gl.norm_lane_width*0.95:
+        #     return True
         # 在小于安全距离，且对抗车在相邻车道时，或者，对抗车在主车后方且与主车不同车道时，不能换道
         return (self.gl.ego.pos_x > -safe_dis and abs(self.gl.adv.lane_id -  self.gl.ego.lane_id) == 1 ) or (self.gl.ego.pos_x > 0  and  self.gl.adv.lane_id !=  self.gl.ego.lane_id)
 
@@ -881,7 +982,7 @@ class ADV_Manager(AtomicBehavior):
                 print("ADV---lane change action can not stop!!!")
             else:
                 print("ADV---stop lat act!!!")
-                self.stop_lat_act()
+                self.stop_lat_act_carla()
                 return  -1
 
         print(">>>>>>>>>>>>>>>>>>>")
@@ -891,7 +992,7 @@ class ADV_Manager(AtomicBehavior):
         print(">>>>>>>>>>>>>>>>>>>")
         # 有墙模式下，偏移动作优先级低于变道动作，优先执行变道指令
         if self.model_type == 0 and (self.ctrl_signal['lat'] in ['LANE_LEFT','LANE_RIGHT'] ) and(self.action_marking not in ['LANE_LEFT','LANE_RIGHT','']): 
-            if self.exec_lat_act():
+            if self.exec_lat_act_carla():
                 self.keep_time = self.ACTIONS_DUR[self.ctrl_signal['lat']]
                 self.action_marking = self.ctrl_signal['lat']
                 self.keep_time_index  = 0
@@ -901,7 +1002,7 @@ class ADV_Manager(AtomicBehavior):
  
             # if (self.ctrl_signal['lat'] == "LANE_LEFT" and self.check_lane_change_action(self.gl.left_neib_front_vec_to_compete, self.gl.left_neib_bake_vec_to_compete) ) or \
             #         (self.ctrl_signal['lat'] == "LANE_RIGHT" and self.check_lane_change_action(self.gl.right_neib_front_vec_to_compete, self.gl.right_neib_bake_vec_to_compete) ):
-            if self.exec_lat_act():
+            if self.exec_lat_act_carla():
                 self.keep_time = self.ACTIONS_DUR[self.ctrl_signal['lat']]
                 self.action_marking = self.ctrl_signal['lat']
                 self.keep_time_index  = 0
@@ -919,7 +1020,7 @@ class ADV_Manager(AtomicBehavior):
             if self.action_marking in ['LANE_RIGHT','LANE_LEFT'] and self.gl.adv_hdg_num <= 30 and self.keep_time < 120 :
                 self.keep_time += 5
             else:
-                self.stop_lat_act()
+                self.stop_lat_act_carla()
                 return -1
         # 查看对抗车车头是否与车道朝向同方向
         if self.action_marking in ['LANE_RIGHT', 'LANE_LEFT'] and self.keep_time_index >= int(self.keep_time/2):
@@ -935,7 +1036,7 @@ class ADV_Manager(AtomicBehavior):
         #     self.ctrl_signal['lon'] = "IDLE"
         # 纵向控制指令
         # 执行纵向指令
-        self.exec_lon_act()
+        self.exec_lon_act_carla()
 
     def slow_following_check(self, lat_warn):
         result = None
@@ -1001,8 +1102,8 @@ class ADV_Manager(AtomicBehavior):
     def contrl(self,lat_warn):
         self.contrl_adv(lat_warn)
         # 如果没有任何纵向加速信息，则保持
-        if self.lib.get_msg_num()  ==  0 and self.gl.adv is not None:
-            self.lib.addPkg(   self.gl.fram_data["simTime"], self.gl.fram_data["simFrame"], 0, 0, self.gl.adv.id, 1)
+        # if self.lib.get_msg_num()  ==  0 and self.gl.adv is not None:
+        #     self.lib.addPkg(   self.gl.fram_data["simTime"], self.gl.fram_data["simFrame"], 0, 0, self.gl.adv.id, 1)
 
 
     # 碰撞警告，且会将坐标系转换成对抗车辆坐标系
@@ -1566,6 +1667,7 @@ class ADV_Manager(AtomicBehavior):
         #     return
         # 全局坐标系
         self.trans_world_cood()
+        print("-----------------全局坐标系------------------")
         for i in self.gl.objects:
             print("-----------------1---------------------")
             i.show()
@@ -1577,8 +1679,11 @@ class ADV_Manager(AtomicBehavior):
             # state, ita_state, ped_state = self.get_dqn_state()
             # self.ctrl_signal = self.sample_actions(state, ita_state, ped_state)
             self.trans_world_to_local()
+            print("---------------对抗车 车辆坐标系-----------------")
             print("adv cood    ego info :")
             self.gl.ego.show()
+            print("adv cood    adv info :")
+            self.gl.adv.show()
             for i in self.gl.objects:
                 print("==================1====================")
                 i.show()
@@ -1586,6 +1691,12 @@ class ADV_Manager(AtomicBehavior):
             self.get_adv_around_state()
             # 获取模型输入
             state = self.get_dqn_state_new()
+            # self.ctrl_signal = self.sample_actions_new(state)
+            self.ctrl_signal = {'lon': 'IDLE', 'lat': 'LANE_LEFT'}
+
+            print("ADV--- model ctrl:", self.ctrl_signal)
+            lon_warn, lat_warn = self.collision_warning()
+            self.contrl(lat_warn)
         return py_trees.common.Status.RUNNING
         # other npc
         # if self.gl.adv is None or len(self.gl.objects) > 0:
@@ -1646,7 +1757,6 @@ class ADV_Manager(AtomicBehavior):
         #     df1 = pd.DataFrame(data=data,columns=env_key)
         #     df = df.append(df1, ignore_index=True)
             # df = pd.concat(df,df1,ignore_index=True) df.append(df1, ignore_index=True)
-
 
         print("ADV---loop_total_time:", time.time() - loop_start_time)
         # df.to_csv('./reference_time' + '.csv', encoding='utf_8_sig')

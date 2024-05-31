@@ -39,6 +39,9 @@ class GLOBAL():
         self.adv_hdg_num = 0
         self.adv_flag = True
         self.norm_lane_width = 3.75
+
+        self.carla_objects = []
+        self.alive_actors = []
         # [-5,5] ,   safe -> dangerous
         #[-5,5]，  越大越危险，
         self.dangerous = -3
@@ -48,6 +51,10 @@ class GLOBAL():
         self.lon_offset = 3
         # 加速度分辨率，推荐10 - 15
         self.acc_resolution = 10
+
+
+
+
 
 
 

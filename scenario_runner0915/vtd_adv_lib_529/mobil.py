@@ -11,7 +11,7 @@
 
 import numpy as np
 from collections import deque
-from  vtd_adv_lib.utils import *
+from  utils import *
 class FakeCarlaActor(object):
     """
     用于进行验证的辅助类, 模拟Carla Actor
