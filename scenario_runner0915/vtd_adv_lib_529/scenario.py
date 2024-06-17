@@ -5,17 +5,23 @@ import xml.etree.ElementTree as ET
 class PREPARE():
     def __init__(self,scenario_path = None):
 
-        if scenario_path  is None :
-            data_path = '/data/'
-            for i in os.listdir(data_path):
-                if i[-3:] == 'xml':
-                    # print(i)
-                    scenario_path = os.path.join(data_path, i)
+        # if scenario_path  is None :
+        #     data_path = '/data/'
+        #     for i in os.listdir(data_path):
+        #         if i[-3:] == 'xml':
+        #             # print(i)
+        #             scenario_path = os.path.join(data_path, i)
         self.scenario_path = scenario_path
         self.confrontation_position = [-1,-1]
         self.wallpoints = []
         self.adv_enable = []
-        self.get_points()
+        # self.get_points()
+        self.carla_get_points()
+    def carla_get_points(self):
+        self.confrontation_position = [-1,-1]
+        # self.wallpoints = [[-229,23.73],[-225.45,23.0]]
+        self.wallpoints = [[-229,43.73]]
+        self.adv_enable = []
     # 从xodr中获取相遇点坐标
     def get_points(self):
         tree = ET.parse(self.scenario_path)

@@ -277,8 +277,21 @@ def generate_target_waypoint_list(waypoint, turn=0):
             break
 
     return plan, plan[-1][0]
+def generate_target_waypoint_list_samelane(waypoint, distance_same_lane = 50,step_distance = 2):
+    plan = []
+    plan.append((waypoint, RoadOption.LANEFOLLOW))  # start position
+    distance = 0
+    option = RoadOption.LANEFOLLOW
+    while distance < distance_same_lane:
+        next_wps = plan[-1][0].next(step_distance)
+        if not next_wps:
+            return None, None
+        next_wp = next_wps[0]
+        distance += next_wp.transform.location.distance(plan[-1][0].transform.location)
+        plan.append((next_wp, RoadOption.LANEFOLLOW))
+    target_lane_id = plan[-1][0].lane_id
 
-
+    return plan, target_lane_id
 def generate_target_waypoint_list_multilane(waypoint, change='left',  # pylint: disable=too-many-return-statements
                                             distance_same_lane=10, distance_other_lane=25,
                                             total_lane_change_distance=25, check=True,

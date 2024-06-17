@@ -43,7 +43,6 @@ from srunner.tools.scenario_helper import generate_target_waypoint_list_multilan
 
 EPSILON = 0.001
 
-
 def calculate_distance(location, other_location, global_planner=None):
     """
     Method to calculate the distance between to locations
@@ -85,7 +84,6 @@ def get_actor_control(actor):
     return control, actor_type
 
 class AtomicBehavior(py_trees.behaviour.Behaviour):
-
 
     """
     Base class for all atomic behaviors used to setup a scenario

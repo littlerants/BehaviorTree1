@@ -26,6 +26,38 @@ def trans2angle(x,y,theta):
     new_pos_y = tmp_y * math.cos(theta) - tmp_x * math.sin(theta)
     print("new value:",new_pos_x,new_pos_y)
 
+
+
+class A:
+    def __init__(self):
+        self.a = 10
+    def get_value(self):
+        pass
+
+    def update(self):
+        print(self.get_value())
+
+
+class B(A):
+    def __init__(self):
+        self.b = 20
+        super(B,self).__init__()
+
+    def get_value(self):
+        return self.a,self.b
+    def update(self):
+        super(B,self).update()
+
+
+
+
+
 if __name__ == "__main__":
+    ins = B()
+    ins.update()
     # main()
-    trans2angle(5,10,np.pi)
+    # trans2angle(5,10,np.pi)
+
+
+
+

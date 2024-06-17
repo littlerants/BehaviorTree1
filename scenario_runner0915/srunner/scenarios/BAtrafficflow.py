@@ -16,7 +16,7 @@ from srunner.scenariomanager.carla_data_provider import (
 
 # EGO_ROAD = 'road'
 
-
+random.seed( 14 )
 SUMO_CARLA_TYPE_TO_VEHICLE = {
     "passenger": [
         "vehicle.audi.a2",

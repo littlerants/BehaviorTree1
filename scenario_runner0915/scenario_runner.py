@@ -565,7 +565,7 @@ def main():
                         help='IP of the host server (default: localhost)')
     parser.add_argument('--port', default='2000',
                         help='TCP port to listen to (default: 2000)')
-    parser.add_argument('--timeout', default="10.0",
+    parser.add_argument('--timeout', default="1000.0",
                         help='Set the CARLA client timeout value in seconds')
     parser.add_argument('--trafficManagerPort', default='8000',
                         help='Port to use for the TrafficManager (default: 8000)')
@@ -635,7 +635,7 @@ def main():
 
     if arguments.route:
         arguments.reloadWorld = True
-
+    arguments.sync = True
     if arguments.agent:
         arguments.sync = True
 

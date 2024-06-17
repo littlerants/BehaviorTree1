@@ -33,6 +33,9 @@ from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import (
     AtomicBehavior,
 )
+from local_planner import RoadOption, LocalPlanner
+from srunner.tools.scenario_helper import detect_lane_obstacle
+from srunner.tools.scenario_helper import generate_target_waypoint_list_multilane,generate_target_waypoint_list_samelane
 
 def calculate_distance(other_actor, ego_vehicle):
     """
@@ -102,15 +105,15 @@ class ADV_Manager(AtomicBehavior):
         self.args = CONFIG()
         self.lat_check = LATCHECK()
         self.model_manager =  ModelManager(self.args ,self.args.model_path)
-
+        self.advplanner = AdvPlanner()
         self.static_objects_config = {}
         self.static_objects = []
 
         self.wall_far = 70
         self.model_type = None
         # 强化学习模型动作空间中各个动作执行时间
-        self.ACTIONS_DUR =  { 'LANE_LEFT': 20, 'IDLE': 0 , 'LANE_RIGHT': 20, 'FASTER': 10, 'SLOWER': 10,
-                            "LEFT_1": 10, "LEFT_2":20, "RIGHT_1": 20, "RIGHT_2": 20,"BLANK":10}
+        self.ACTIONS_DUR =  { 'LANE_LEFT': 50, 'IDLE': 0 , 'LANE_RIGHT': 50, 'FASTER': 10, 'SLOWER': 10,
+                            "LEFT_1": 100, "LEFT_2":100, "RIGHT_1": 100, "RIGHT_2": 100,"BLANK":20}
         self.action_marking = ''
         # 各个动作预留时间
         self.keep_time = -1
@@ -133,19 +136,28 @@ class ADV_Manager(AtomicBehavior):
         # 初始化全局对象
         self.gl = GLOBAL()
         self.DEFAULT_TARGET_SPEEDS = np.linspace(0, 30, self.gl.acc_resolution)
-
+        self.prepare = PREPARE()
+        self.create_static_objects(self.prepare)
     def create_static_objects(self,prepare):
         for i in range(len(self.prepare.wallpoints)):
-            wall_lane_info = self.road.network.get_road_info(
-                self.road.network.get_closest_lane_index(self.prepare.wallpoints[i])[:2] )
-            wall_lane = self.road.network.get_lane(
-                self.road.network.get_closest_lane_index(self.prepare.wallpoints[i]  ) )
-            self.static_objects_config["static_wall_point_"+ str(i)] =  {"name":"static_wall_point","static":True, "id":-(i+1), "pos_x":prepare.wallpoints[i][0],
-                    "pos_y":prepare.wallpoints[i][1],"lane":wall_lane, "lane_id":wall_lane_info["lane_id"],
-             "roadId":wall_lane_info["road_id"], "pos_h":wall_lane_info["heading" ] }
+            # wall_lane_info = self.road.network.get_road_info(
+            #     self.road.network.get_closest_lane_index(self.prepare.wallpoints[i])[:2] )
+            # wall_lane = self.road.network.get_lane(
+            #     self.road.network.get_closest_lane_index(self.prepare.wallpoints[i]  ) )
 
+            static_wp = self._map.get_waypoint(carla.Location(x=prepare.wallpoints[i][0], y=prepare.wallpoints[i][1]))
+            left_wp = static_wp.get_left_lane()
+            turn_left = static_wp.left_lane_marking.lane_change
+            right_wp = static_wp.get_right_lane()
+            turn_right = static_wp.right_lane_marking.lane_change
+            if static_wp.transform.rotation.yaw >= 180:
+                pos_h =(360 - static_wp.transform.rotation.yaw ) / 180 * np.pi
+            elif static_wp.transform.rotation.yaw < 180:
+                pos_h = - static_wp.transform.rotation.yaw/180 * np.pi
+            self.static_objects_config["static_wall_point_"+ str(i)] =  {"name":"static_wall_point","static":True, "id":-(i+1), "pos_x":prepare.wallpoints[i][0],
+                    "pos_y":prepare.wallpoints[i][1], "lane_id":static_wp.lane_id , "road_id":static_wp.road_id, "wp":static_wp,"pos_h":pos_h }
             self.static_objects.append( OBJECT(static=True,id=-(i+1),pos_x=prepare.wallpoints[i][0],pos_y=prepare.wallpoints[i][1],\
-                name="static_wall_point_"+ str(i),lane= wall_lane,lane_id=wall_lane_info["lane_id"],roadId=wall_lane_info["road_id"] ,pos_h=wall_lane_info["heading"] )  )
+                name="static_wall_point_"+ str(i),lane_id=static_wp.lane_id ,roadId= static_wp.road_id ,pos_h=pos_h,wp=static_wp )  )
 
     # 获取地图中所有juction信息
     def juction_set(self):
@@ -217,9 +229,10 @@ class ADV_Manager(AtomicBehavior):
         traffic_lights = []
         self.gl.alive_actors = []
         for other_vehicle in self.world.get_actors().filter('vehicle.*'):
-            self.gl.alive_actors.append(other_vehicle.id)
+
             if calculate_distance(other_vehicle, self.ego_vehicle) < 50 and \
                     other_vehicle.attributes['role_name'] != "ego_vehicle":
+                self.gl.alive_actors.append(other_vehicle.id)
                 other_vehicles.append(other_vehicle)
                 # if get_speed(other_vehicle) > 0:
                 #     other_vehicles.append(other_vehicle)
@@ -262,41 +275,53 @@ class ADV_Manager(AtomicBehavior):
         # 车辆朝向 左手坐标系
         pos_h = (-self.ego_vehicle.get_transform().rotation.yaw/180)*np.pi
         # 道路朝向
-        hdg = (-ego_wp.transform.rotation.yaw/180)*np.pi
+        if ego_wp.transform.rotation.yaw >= 180:
+            hdg = (360 - ego_wp.transform.rotation.yaw) / 180 * np.pi
+        elif ego_wp.transform.rotation.yaw < 180:
+            hdg = - ego_wp.transform.rotation.yaw / 180 * np.pi
+        # if ego_wp.transform.rotation.yaw/180 > np.pi
+        print("ego_wp.transform.rotation.yaw:",self.ego_vehicle.get_transform().rotation.yaw,ego_wp.transform.rotation.yaw)
+        # hdg = (-ego_wp.transform.rotation.yaw/180)*np.pi
         # self.gl.objects_set 所要维护的目标列表
         # 若为0，则直接清空 self.gl.objects（用于存储所有目标对象）
         if len(self.gl.objects_set) == 0:
             self.gl.objects.clear()
+        left_wp = ego_wp.get_left_lane()
+        turn_left =   ego_wp.left_lane_marking.lane_change
+        right_wp = ego_wp.get_right_lane()
+        turn_right = ego_wp.right_lane_marking.lane_change
         # 如果主车不为空，更新主车各个参数
         if self.gl.ego is not None:
 
             self.gl.ego.update(pos_x=self.ego_vehicle.get_location().x, pos_y=-self.ego_vehicle.get_location().y,
                                pos_h=pos_h, \
                                vx=self.ego_vehicle.get_velocity().x, vy=-self.ego_vehicle.get_velocity().y,
-                               acc_x=self.ego_vehicle.get_acceleration().x, hdg=hdg, \
+                               acc_x=self.ego_vehicle.get_acceleration().x, hdg=pos_h - hdg, \
                                l=self.ego_vehicle.bounding_box.extent.x, w=self.ego_vehicle.bounding_box.extent.y,
                                acc_y=-self.ego_vehicle.get_acceleration().y, roadId=ego_wp.road_id,
                                obj_type=self.ego_vehicle.type_id, lane_offset=0, lane_id=ego_wp.lane_id, \
-                               leftLaneId=ego_wp.get_left_lane().lane_id if ego_wp.get_left_lane() else 100,
-                               rightLaneId=ego_wp.get_right_lane().lane_id if ego_wp.get_right_lane() else 100, \
+                               leftLaneId=left_wp.lane_id if (left_wp and turn_left in [carla.LaneChange.Left, carla.LaneChange.Both] ) else 100,
+                               rightLaneId=right_wp.lane_id if (right_wp and turn_right in [carla.LaneChange.Right, carla.LaneChange.Both]) else 100, \
                                light_state=traffic_lights,
                                wp=ego_wp
                                )
         # 否则初始化主车对象
         else:
-            self.gl.ego = OBJECT(name=self.ego_vehicle.id, \
+            self.gl.ego = OBJECT(name=str(self.ego_vehicle.id), \
                                  id=self.ego_vehicle.id, pos_x=self.ego_vehicle.get_location().x, off_x=0,
                                  pos_y=-self.ego_vehicle.get_location().y,
-                                 pos_h=-self.ego_vehicle.get_transform().rotation.yaw, \
-                                 hdg=-ego_wp.transform.rotation.yaw, vx=self.ego_vehicle.get_velocity().x,
+                                 pos_h=pos_h, \
+                                 hdg=pos_h - hdg, vx=self.ego_vehicle.get_velocity().x,
                                  vy=-self.ego_vehicle.get_velocity().y, roadId=ego_wp.road_id, \
                                  acc_x=self.ego_vehicle.get_acceleration().x, l=self.ego_vehicle.bounding_box.extent.x,
                                  w=self.ego_vehicle.bounding_box.extent.y, \
                                  acc_y=-self.ego_vehicle.get_acceleration().y, obj_type=self.ego_vehicle.type_id,
                                  lane_offset=0, \
                                  lane_id=ego_wp.lane_id,
-                                 leftLaneId=ego_wp.get_left_lane().lane_id if ego_wp.get_left_lane() else 100,
-                                 rightLaneId=ego_wp.get_right_lane().lane_id if ego_wp.get_right_lane() else 100,
+                                 leftLaneId=left_wp.lane_id if (left_wp and turn_left in [carla.LaneChange.Left,
+                                                                                          carla.LaneChange.Both]) else 100,
+                                 rightLaneId=right_wp.lane_id if (right_wp and turn_right in [carla.LaneChange.Right,
+                                                                                              carla.LaneChange.Both]) else 100, \
                                  wp=ego_wp
                                  )
         # 遍历self.gl.fram_data['Objects'] 中探测到的目标，并初始化或更新这些目标
@@ -309,30 +334,47 @@ class ADV_Manager(AtomicBehavior):
             # print("carla origin values:",i.id , i.get_location())
             location = self.get_local_location(self.ego_vehicle, i.get_location())
             i_wp = self._map.get_waypoint(i.get_location())
-            pos_h = (-i.get_transform().rotation.yaw/180)* np.pi
-            hdg = (-i_wp.transform.rotation.yaw/180)* np.pi
+            left_wp = i_wp.get_left_lane()
+            turn_left = i_wp.left_lane_marking.lane_change
+            right_wp = i_wp.get_right_lane()
+            turn_right = i_wp.right_lane_marking.lane_change
+            pos_h = (-i.get_transform().rotation.yaw/180) * np.pi
+
+            if i_wp.transform.rotation.yaw >= 180:
+                hdg =(360 - i_wp.transform.rotation.yaw ) / 180 * np.pi
+            elif i_wp.transform.rotation.yaw < 180:
+                hdg = - i_wp.transform.rotation.yaw/180 * np.pi
+            print("i.transform.rotation.yaw:",i.get_transform().rotation.yaw, i_wp.transform.rotation.yaw)
+
+            print("pos_h / hdg:",pos_h,hdg)
+            # hdg = (-i_wp.transform.rotation.yaw/180)* np.pi
+
             if i.id in self.gl.objects_set :
                 for j in self.gl.objects:
                     if i.id == j.id:
                         j.update(pos_x=location.x, pos_y=-location.y,
-                                 pos_h=pos_h, hdg=hdg, \
+                                 pos_h=pos_h, hdg= pos_h - hdg, \
                                  vx=i.get_velocity().x, vy=-i.get_velocity().y,
                                  acc_x=i.get_acceleration().x, l=i.bounding_box.extent.x, w=i.bounding_box.extent.y,
                                  acc_y=-i.get_acceleration().y, obj_type=i.type_id, \
                                  lane_offset=0, lane_id=i_wp.lane_id, roadId=i_wp.road_id, \
-                                 leftLaneId=i_wp.get_left_lane().lane_id if i_wp.get_left_lane() else 100,
-                                 rightLaneId=i_wp.get_right_lane().lane_id if i_wp.get_right_lane()  else 100,
+                                 leftLaneId=left_wp.lane_id if (left_wp and turn_left in [carla.LaneChange.Left,
+                                                                                          carla.LaneChange.Both]) else 100,
+                                 rightLaneId=right_wp.lane_id if (right_wp and turn_right in [carla.LaneChange.Right,
+                                                                                              carla.LaneChange.Both]) else 100, \
                                  wp=i_wp
                                  )
             else:
-                obj = OBJECT(id=i.id, pos_x=location.x, pos_y=-location.y, off_x=0,
-                             pos_h=pos_h, hdg=hdg, \
+                obj = OBJECT(name=str(i.id), id=i.id, pos_x=location.x, pos_y=-location.y, off_x=0,
+                             pos_h=pos_h, hdg= pos_h - hdg, \
                              vx=i.get_velocity().x, vy=-i.get_velocity().y,
                              acc_x=i.get_acceleration().x, l=i.bounding_box.extent.x, w=i.bounding_box.extent.y,
                              acc_y=-i.get_acceleration().y, obj_type=i.type_id, \
                              lane_offset=0, lane_id=i_wp.lane_id, roadId=i_wp.road_id, \
-                             leftLaneId=i_wp.get_left_lane().lane_id if i_wp.get_left_lane() else 100,
-                             rightLaneId=i_wp.get_right_lane().lane_id if i_wp.get_right_lane() else 100,
+                             leftLaneId=left_wp.lane_id if (left_wp and turn_left in [carla.LaneChange.Left,
+                                                                                      carla.LaneChange.Both]) else 100,
+                             rightLaneId=right_wp.lane_id if (right_wp and turn_right in [carla.LaneChange.Right,
+                                                                                          carla.LaneChange.Both]) else 100, \
                              wp=i_wp
                              )
 
@@ -340,21 +382,28 @@ class ADV_Manager(AtomicBehavior):
                 self.gl.objects_set.append(obj.id)
                 self.gl.objects+= [obj]
 
-        # if len(self.static_objects) > 0:
-        #     for i in self.static_objects:
-        #         dis2ego = self.get_sqrt(self.static_objects_config[i.name]['pos_x'] - self.gl.ego.pos_x,\
-        #                                 self.static_objects_config[i.name]['pos_y'] - self.gl.ego.pos_y)
-        #         # print("dis2ego:",dis2ego)
-        #         if dis2ego < 200 and  i.id not in self.gl.objects_set:
-        #             # static_tmp = copy.deepcopy(i)
-        #             self.gl.objects.append(i)
-        #             self.gl.objects_set.append(i.id)
-        #         i.update(pos_x=self.static_objects_config[i.name]['pos_x'],pos_y=self.static_objects_config[i.name]['pos_y'],\
-        #                  vx=0,vy = 0,acc_x=0, acc_y=0,\
-        #                  lane=self.static_objects_config[i.name]['lane'], lane_id=self.static_objects_config[i.name]['lane_id'], roadId=self.static_objects_config[i.name]['roadId'], \
-        #                  pos_h=self.static_objects_config[i.name]['pos_h'],static = True
-        #                  )
-        #         i.trans_cood2(self.gl.ego, True, True, True, rotate=1)
+        if len(self.static_objects) > 0:
+            for i in self.static_objects:
+                dis2ego = self.get_sqrt(self.static_objects_config[i.name]['pos_x'] - self.gl.ego.pos_x,\
+                                        self.static_objects_config[i.name]['pos_y'] - self.gl.ego.pos_y)
+                # print("dis2ego:",dis2ego)
+                if dis2ego < 200 and  i.id not in self.gl.objects_set:
+                    # static_tmp = copy.deepcopy(i)
+                    self.gl.objects.append(i)
+                    self.gl.objects_set.append(i.id)
+
+
+                i.update(pos_x=self.static_objects_config[i.name]['pos_x'],pos_y=self.static_objects_config[i.name]['pos_y'],\
+                         vx=0,vy = 0,acc_x=0, acc_y=0,\
+                         lane_id=self.static_objects_config[i.name]['lane_id'], roadId=self.static_objects_config[i.name]['road_id'], \
+                         pos_h=self.static_objects_config[i.name]['pos_h'], static = True
+                         )
+                self.gl.alive_actors.append(i.id)
+                i.trans_cood2(self.gl.ego, True, True, True, rotate=1)
+                w = self.static_objects_config[i.name]['wp']
+                wp = w.transform.location + carla.Location(z=0.2)
+                wp.y = -wp.y
+                self.ego_vehicle.get_world().debug.draw_point(wp, size=0.1, color=carla.Color(255, 0, 0), life_time=0.1)
         print("----------------主车车辆坐标系-----------------")
         print("---------------------ego info-----------------------:")
 
@@ -425,7 +474,6 @@ class ADV_Manager(AtomicBehavior):
             return False
 
     def parseRDBMessage(self):
-
         #  创建对象
         self.create_objs()
 
@@ -433,9 +481,7 @@ class ADV_Manager(AtomicBehavior):
         self.gl.objects = sorted(self.gl.objects, key=lambda x: math.sqrt(x.pos_x**2 + x.pos_y**2) )
         for i in self.gl.objects:
             self.obj2ego_djirection(i)
-
-
-        flag = {'index':0,"flg":False}
+        flag = {'index':0,'flg':False}
         # 将要从 self.objects中弹出的对象列表
         pop_index = []
         index = 0
@@ -444,56 +490,51 @@ class ADV_Manager(AtomicBehavior):
 
         show_log = 1
         if show_log:
-           print("ADV---len(self.gl.objects):",len(self.gl.objects))
+           print("ADV---len(self.gl.objects):", len(self.gl.objects))
         if len(self.gl.objects) >0:
             # print("ADV---len objects:",len(self.gl.objects))g
-            ego_vx,ego_vy = trans2angle(self.gl.ego.vx, self.gl.ego.vy,self.gl.ego.pos_h)
+            # ego_vx,ego_vy = trans2angle(self.gl.ego.vx, self.gl.ego.vy,self.gl.ego.pos_h)
             for i in self.gl.objects:
-                #
-
                 if i.id not in self.gl.alive_actors:
                     pop_index.append(index)
                     index+=1
                     continue
-                real_vx = i.vx + ego_vx
-                real_vy = i.vy + ego_vy
-                if real_vx < 0.2 and ego_vx > 2:
-                    index+=1
-                    continue
+                # real_vx = i.vx + ego_vx
+                # real_vy = i.vy + ego_vy
+                # if real_vx < 0.2 and ego_vx > 2:
+                #     index+=1
+                #     continue
                 # print('distance:',self.get_sqrt(i.pos_x, i.pos_y))
                 # 主车50米以内所有车辆
-                if (i.name.find("static")== -1 or not i.static) and  self.get_sqrt(i.pos_x, i.pos_y) <90:
+                if (i.name.find("static")== -1 or not i.static) and  self.get_sqrt(i.pos_x, i.pos_y) < 50  and i.pos_x > -5 and self.gl.ego.lane_id * i.lane_id > 0:
                     # 主车后30米以内所有车辆
-                    if  i.pos_x > -50:
-                        # print("ADV---i.pos_x > 3")
-                        # i.show()
-                        # print("ADV---self.gl.compete_time:",self.gl.compete_time)
-                        # 选定一辆对抗车后，对抗时间持续 500 帧
-                        if self.gl.compete_time < self.gl.compete_time_range :
-
-                            if front_close_vec_index == -1:
-                                # 获取距离主车最近的目标index
-                                front_close_vec_index = index
-                                # front_close_vec_index = -1
-                            # 如果对抗时长还未用完，且当前目标物与上一帧目标物为同一目标物，则被优先选择
-                            # if i.name ==  self.gl.last_compete_name:
-                            if i.name ==  'New Player':
-                                pop_index.append(index)
-                                flag['flg'] = True
-                                flag['index'] = index
-                        # 对抗时间用完，则清空所有对抗信息，重新选择对抗目标
-                        else:
-                            # auto pilot
-
-                            self.gl.compete_time = 0
-                            self.gl.last_compete_name = ''
-                            self.gl.last_compete_name_id = -1
-                            print("ADV---comete time is over!!! free adv vecicle:",self.gl.adv.name)
-                            self.gl.adv = None
-                            return None
+                    # print("ADV---i.pos_x > 3")
+                    # i.show()
+                    # print("ADV---self.gl.compete_time:",self.gl.compete_time)
+                    # 选定一辆对抗车后，对抗时间持续 500 帧
+                    if self.gl.compete_time < self.gl.compete_time_range :
+                        if front_close_vec_index == -1:
+                            # 获取距离主车最近的目标index
+                            front_close_vec_index = index
+                            # front_close_vec_index = -1
+                        # 如果对抗时长还未用完，且当前目标物与上一帧目标物为同一目标物，则被优先选择
+                        if i.name ==  self.gl.last_compete_name:
+                        # if i.name ==  'New Player':
+                            pop_index.append(index)
+                            flag['flg'] = True
+                            flag['index'] = index
+                    # 对抗时间用完，则清空所有对抗信息，重新选择对抗目标
+                    else:
+                        # auto pilot
+                        self.gl.compete_time = 0
+                        self.gl.last_compete_name = ''
+                        self.gl.last_compete_name_id = -1
+                        print("ADV---comete time is over!!! free adv vecicle:",self.gl.adv.name)
+                        self.gl.adv = None
+                        return None
+                # 距离墙太远的静态障碍物忽略
                 elif i.name.find("static") != -1 and  self.get_sqrt(i.pos_x, i.pos_y) > self.wall_far:
                     pop_index.append(index)
-
                 index += 1
 
         else:
@@ -534,6 +575,7 @@ class ADV_Manager(AtomicBehavior):
         # for i in self.gl.objects:
         #     i.show()
         # print("ADV---88888888888888888888888888")
+
         self.gl.compete_time += 1
         for p in pop_index:
             # print("ADV---p:",p)
@@ -554,7 +596,10 @@ class ADV_Manager(AtomicBehavior):
         return math.sqrt( math.pow(ego.pos_x,2) + math.pow( ego.pos_y,2) )
     # 获取车辆速度
     def get_speed(self,vx,vy):
-        return math.sqrt( math.pow(vx,2) + math.pow( vy,2) )
+        speed = math.sqrt( math.pow(vx,2) + math.pow( vy,2) )
+        if speed < 1e-6:
+            speed = 1e-6
+        return speed
     def get_sqrt(self,x,y):
         return math.sqrt( math.pow(x,2) + math.pow( y,2) )
     ##########################################################
@@ -599,7 +644,8 @@ class ADV_Manager(AtomicBehavior):
     # 保持不变
     def idle_act(self):
         # pass
-        self.lib.addPkg( self.gl.fram_data["simTime"], self.gl.fram_data["simFrame"], 0, 0, self.gl.adv.id  , 1)
+        return 0
+        # self.lib.addPkg( self.gl.fram_data["simTime"], self.gl.fram_data["simFrame"], 0, 0, self.gl.adv.id  , 1)
     # 右变道
     def lane_right_act(self):
         self.gl.scp.turn_right(self.gl.adv.name)
@@ -625,7 +671,8 @@ class ADV_Manager(AtomicBehavior):
         # 预期加速度
         acceleration = target_speed  - adv_speed
         print("ADV---lon acceleration: ", acceleration)
-        self.lib.addPkg( self.gl.fram_data["simTime"], self.gl.fram_data["simFrame"], acceleration, 0, self.gl.adv.id  , 1)
+        return acceleration
+        # self.lib.addPkg( self.gl.fram_data["simTime"], self.gl.fram_data["simFrame"], acceleration, 0, self.gl.adv.id  , 1)
 
     def opt_conver_acc(self,acceleration):
         # print("ADV---self.C_time:",self.C_time)
@@ -664,7 +711,7 @@ class ADV_Manager(AtomicBehavior):
 
 
     def slower_act(self):
-        self.faster_act(-1)
+        return self.faster_act(-1)
     def left_1_act(self):
         self.gl.scp.Laneoffset(self.gl.adv.name, 1.2)
     def left_2_act(self,offset):
@@ -699,13 +746,19 @@ class ADV_Manager(AtomicBehavior):
             self.idle_act()
     def exec_lon_act_carla(self):
         print("ADV--- real  contral", self.ctrl_signal)
-        # if self.ctrl_signal['lon'] == 'FASTER':
-        #     self.faster_act()
-        # elif self.ctrl_signal['lon'] == 'SLOWER':
-        #     self.slower_act()
+        acc = 0
+        if self.ctrl_signal['lon'] == 'FASTER':
+            acc = self.faster_act()
+        elif self.ctrl_signal['lon'] == 'SLOWER':
+            acc = self.slower_act()
         # elif self.ctrl_signal['lon'] == 'IDLE':
-        #     self.idle_act()
-
+        #     acc = self.idle_act()
+        print("origin acc-----:",acc)
+        if self.gl.adv.id != self.gl.last_compete_name_id:
+            adv_vx, adv_vy = trans2angle(self.gl.adv.vx, self.gl.adv.vy, self.gl.adv.pos_h)
+            target_speed = self.gl.adv.get_sqrt(adv_vx, adv_vy)
+            self.advplanner.set_actor(self.get_carla_actor(self.gl.adv.id), target_speed)
+        self.advplanner.update(self.ctrl_signal['lat'], self.action_marking, acc)
     def get_carla_actor(self,id):
         for i in self.gl.carla_objects:
             if i.id == id:
@@ -722,19 +775,19 @@ class ADV_Manager(AtomicBehavior):
         carla_adv_actor = self.get_carla_actor(self.gl.adv.id)
         if self.ctrl_signal['lat']  == "LANE_LEFT"  :
             # self.lane_left_act()
-            self._tm.force_lane_change(carla_adv_actor,False)
+            # self._tm.force_lane_change(carla_adv_actor,False)
             return True
         elif self.ctrl_signal['lat'] == "LEFT_2" :
             # self.left_2_act(lane_off_set)
-            self._tm.force_lane_change(carla_adv_actor, False)
+            # self._tm.force_lane_change(carla_adv_actor, False)
             return True
         elif self.ctrl_signal['lat'] == "LANE_RIGHT" :
             # self.lane_right_act()
-            self._tm.force_lane_change(carla_adv_actor, True)
+            # self._tm.force_lane_change(carla_adv_actor, True)
             return True
         elif self.ctrl_signal['lat'] == "RIGHT_2":
             # self.right_2_act(lane_off_set)
-            self._tm.force_lane_change(carla_adv_actor, True)
+            # self._tm.force_lane_change(carla_adv_actor, True)
             return True
         else:
             # self.gl.scp.auto(self.gl.adv.name)
@@ -799,23 +852,25 @@ class ADV_Manager(AtomicBehavior):
             return False
     def stop_lat_act_carla(self,flag = True):
         # 执行完横向动作(BLANK和IDLE除外)之后，需要进入BLANK缓冲期
-        if self.action_marking in ["BLANK","IDLE",""]:
-            self.keep_time = -1
-            self.keep_time_index = -1
-            self.action_marking = ''
-        else:
-            if self.action_marking in ["LANE_RIGHT","LANE_LEFT"] and self.gl.adv.lane_id != self.gl.ego.lane_id:
-                vx,vy = trans2angle(self.gl.adv.vx,self.gl.adv.vy,self.gl.adv.pos_h)
-                go2dis = (abs(self.gl.ego.pos_x)/ ((self.gl.ego.vx + vx)  if (self.gl.ego.vx + vx)  > 0 else    0.1)    ) * vx + abs(self.gl.ego.pos_x)
-                time1_fram_num = int( go2dis/(self.gl.ego.vx + vx)*20 )
-                print("ADV--- time_fram_num:",time1_fram_num)
-                self.keep_time = self.ACTIONS_DUR["BLANK"] + time1_fram_num if time1_fram_num < 220 else 220
-            else:
-                self.keep_time = self.ACTIONS_DUR["BLANK"] + 10
-            self.keep_time_index = -1
-            self.action_marking = "BLANK"
+        # if self.action_marking in ["BLANK","IDLE",""]:
+        self.keep_time = -1
+        self.keep_time_index = -1
+        self.action_marking = ''
         # 执行纵向指令
         self.exec_lon_act_carla()
+        # else:
+        #     if self.action_marking in ["LANE_RIGHT", "LANE_LEFT"] and self.gl.adv.lane_id != self.gl.ego.lane_id:
+        #         vx,vy = trans2angle(self.gl.adv.vx,self.gl.adv.vy,self.gl.adv.pos_h)
+        #         go2dis = (abs(self.gl.ego.pos_x)/ ((self.gl.ego.vx + vx + 0.1)  if (self.gl.ego.vx + vx)  > 0 else    0.1)    ) * vx + abs(self.gl.ego.pos_x)
+        #         time1_fram_num = int( go2dis/(self.gl.ego.vx + vx + 0.1)*20 )
+        #         print("ADV--- time_fram_num:",time1_fram_num)
+        #         self.keep_time = self.ACTIONS_DUR["BLANK"] + time1_fram_num if time1_fram_num < 220 else 220
+        #     else:
+        #         self.keep_time = self.ACTIONS_DUR["BLANK"] + 10
+        #     self.keep_time_index = -1
+        #     self.action_marking = "BLANK"
+        # # 执行纵向指令
+        # self.exec_lon_act_carla()
     def stop_lat_act(self,flag = True):
         # 执行完横向动作(BLANK和IDLE除外)之后，需要进入BLANK缓冲期
         if self.action_marking in ["BLANK","IDLE",""]:
@@ -936,8 +991,9 @@ class ADV_Manager(AtomicBehavior):
         # 在小于安全距离，且对抗车在相邻车道时，或者，对抗车在主车后方且与主车不同车道时，不能换道
         return (self.gl.ego.pos_x > -safe_dis and abs(self.gl.adv.lane_id -  self.gl.ego.lane_id) == 1 ) or (self.gl.ego.pos_x > 0  and  self.gl.adv.lane_id !=  self.gl.ego.lane_id)
 
-    def contrl_adv(self,lat_warn):
+    def contrl_adv(self, lat_warn):
         # get adv and ego absolute  speed
+        self.gl.exec_lat_action = False
         adv_vx, adv_vy = trans2angle(self.gl.adv.vx, self.gl.adv.vy, self.gl.adv.pos_h)
         adv_speed = self.gl.adv.get_sqrt(adv_vx, adv_vy)
         ego_speed = self.get_speed( adv_vx + self.gl.ego.vx, adv_vy + self.gl.ego.vy )
@@ -963,19 +1019,19 @@ class ADV_Manager(AtomicBehavior):
         #     return
             # self.stop_lat_act()
         # 慢跟车处理逻辑
-        slow_check = self.slow_following_check(lat_warn)
-        # slow_check  = None
-        if slow_check is not None:
-            print("slow follwing !!!  slow_check:",slow_check)
-            self.ctrl_signal['lat'] = slow_check
-            if slow_check != 'IDLE':
-                self.ctrl_signal['lon'] = 'FASTER'
-
+        # slow_check = self.slow_following_check(lat_warn)
+        # # slow_check  = None
+        # if slow_check is not None:
+        #     print("slow follwing !!!  slow_check:",slow_check)
+        #     self.ctrl_signal['lat'] = slow_check
+        #     if slow_check != 'IDLE':
+        #         self.ctrl_signal['lon'] = 'FASTER'
+        #
         # 检查主车与对抗车速度差距是否过大
         self.check_rel_speed(lat_warn,ego_speed,adv_speed)
-        # 横向控制指令  self.keep_time 动作预留时间，若为负，则更新，进入横向控制阶段
-        # 横向控制指令如果有碰撞风险，或 对抗车在主车后面且在不同车道 则取消横向控制指令下发
-        # print("lat_warn:",lat_warn)
+        # # 横向控制指令  self.keep_time 动作预留时间，若为负，则更新，进入横向控制阶段
+        # # 横向控制指令如果有碰撞风险，或 对抗车在主车后面且在不同车道 则取消横向控制指令下发
+        # # print("lat_warn:",lat_warn)
         if self.check_lane_change():
             # 如果此时正在进行变道动作期间，则动作无法撤回,即变道动作已经执行，横向警告拦截失败
             if self.action_marking in ["LANE_LEFT", "LANE_RIGHT"]:
@@ -996,9 +1052,10 @@ class ADV_Manager(AtomicBehavior):
                 self.keep_time = self.ACTIONS_DUR[self.ctrl_signal['lat']]
                 self.action_marking = self.ctrl_signal['lat']
                 self.keep_time_index  = 0
+                self.gl.exec_lat_action = True
 
         # 是否执行横向对抗， keep_time == -1 无任何正在执行横向动作， 此时可以进入横向对抗动作
-        if self.keep_time <= 0 and  self.ctrl_signal['lat'] != "IDLE" :
+        if self.keep_time <= 0 and self.ctrl_signal['lat'] != "IDLE" :
  
             # if (self.ctrl_signal['lat'] == "LANE_LEFT" and self.check_lane_change_action(self.gl.left_neib_front_vec_to_compete, self.gl.left_neib_bake_vec_to_compete) ) or \
             #         (self.ctrl_signal['lat'] == "LANE_RIGHT" and self.check_lane_change_action(self.gl.right_neib_front_vec_to_compete, self.gl.right_neib_bake_vec_to_compete) ):
@@ -1017,7 +1074,7 @@ class ADV_Manager(AtomicBehavior):
 
         elif self.keep_time_index >= self.keep_time:
             # 如果是变道指令，并且预留时间已经用完，但是变道还未完成，则再增加5帧预留时间，预留时间上限为120帧,120帧后强制清零
-            if self.action_marking in ['LANE_RIGHT','LANE_LEFT'] and self.gl.adv_hdg_num <= 30 and self.keep_time < 120 :
+            if self.action_marking in ['LANE_RIGHT','LANE_LEFT'] and self.gl.adv_hdg_num <= 30 and self.keep_time < 500 :
                 self.keep_time += 5
             else:
                 self.stop_lat_act_carla()
@@ -1059,7 +1116,7 @@ class ADV_Manager(AtomicBehavior):
                 if self.gl.slow_dur > 300 and not lat_warn:
                     # 对抗车左侧车道可通行，优先左边到
                     if abs(self.gl.adv.leftLaneId) < 30:
-                        self.lane_left_act()
+                        # self.lane_left_act()
                         result = "LANE_LEFT"
                     elif abs(self.gl.adv.rightLaneId) < 30:
                         result = "LANE_RIGHT"
@@ -1152,10 +1209,10 @@ class ADV_Manager(AtomicBehavior):
         #     i.show()
         return lon_warn, lat_warn
     # 急刹指令
-    def stop(self,actor_id):
-        self.lib.clear()
-        self.lib.addPkg( self.gl.fram_data["simTime"], self.gl.fram_data["simFrame"], -4, 0, actor_id  , 1)
-        print("ADV--->>>>>>>>>>>>>>>>>>>>ctrl>>>>>>>>>>>>>>>>>>>>: stop")
+    # def stop(self,actor_id):
+    #     self.lib.clear()
+    #     self.lib.addPkg( self.gl.fram_data["simTime"], self.gl.fram_data["simFrame"], -4, 0, actor_id  , 1)
+    #     print("ADV--->>>>>>>>>>>>>>>>>>>>ctrl>>>>>>>>>>>>>>>>>>>>: stop")
     # 控制指令发送
     def sendctrlmsg(self):
         self.lib.sendTrigger(self.sClient, self.gl.fram_data['simTime'], self.gl.fram_data['simFrame'],0  )
@@ -1641,10 +1698,12 @@ class ADV_Manager(AtomicBehavior):
                 self.ba_func(obj,ego_vx)
     def initialise(self):
         self.vtd_exec_atomic()
+
     def update(self):
         # 对抗车控制函数
         # self.vtd_func()
-        print("ADV--- Time =================================================== ", time.time() * 1000)
+        show_log = True
+        print("ADV--- Time ===================================================", time.time() * 1000)
         loop_start_time = time.time()
         # 选定对抗车
         self.vtd_exec_atomic()
@@ -1667,96 +1726,192 @@ class ADV_Manager(AtomicBehavior):
         #     return
         # 全局坐标系
         self.trans_world_cood()
-        print("-----------------全局坐标系------------------")
-        for i in self.gl.objects:
-            print("-----------------1---------------------")
-            i.show()
-            print("-----------------2---------------------")
+        if show_log:
+            print("-----------------全局坐标系------------------")
+            for i in self.gl.objects:
+                print("-----------------1---------------------")
+                i.show()
+                print("-----------------2---------------------")
         if self.gl.adv is not None:
-
-            print("ADV---world cood self.gl.adv:")
-            self.gl.adv.show()
+            if show_log:
+                print("ADV---world cood self.gl.adv:")
+                self.gl.adv.show()
             # state, ita_state, ped_state = self.get_dqn_state()
             # self.ctrl_signal = self.sample_actions(state, ita_state, ped_state)
             self.trans_world_to_local()
-            print("---------------对抗车 车辆坐标系-----------------")
-            print("adv cood    ego info :")
-            self.gl.ego.show()
-            print("adv cood    adv info :")
-            self.gl.adv.show()
-            for i in self.gl.objects:
-                print("==================1====================")
-                i.show()
-                print("==================2====================")
+            if show_log:
+                print("---------------对抗车 车辆坐标系-----------------")
+                print("adv cood    ego info :")
+                self.gl.ego.show()
+                print("adv cood    adv info :")
+                self.gl.adv.show()
+                for i in self.gl.objects:
+                    print("==================1====================")
+                    i.show()
+                    print("==================2====================")
             self.get_adv_around_state()
             # 获取模型输入
             state = self.get_dqn_state_new()
-            # self.ctrl_signal = self.sample_actions_new(state)
-            self.ctrl_signal = {'lon': 'IDLE', 'lat': 'LANE_LEFT'}
+            self.ctrl_signal = self.sample_actions_new(state)
+            # self.ctrl_signal = {'lon': 'IDLE', 'lat': 'LANE_LEFT'}
 
             print("ADV--- model ctrl:", self.ctrl_signal)
             lon_warn, lat_warn = self.collision_warning()
             self.contrl(lat_warn)
-        return py_trees.common.Status.RUNNING
-        # other npc
-        # if self.gl.adv is None or len(self.gl.objects) > 0:
-        # print('npc size : ', len(self.gl.objects))
-        # if  len(self.gl.objects) > 0:
-        #     self.vtd_func()
-        # if 0:
-        if self.gl.adv is not None:
-            # print("ADV>>>>>>>>>>>>>>>>>:",self.gl.adv.show())
-            # 打开对抗车所有大灯，标记选定对抗车
-            if self.gl.compete_time % 10 == 1:
-            # if self.gl.compete_time  == 1:
-                self.gl.scp.vec_light(self.gl.adv.name, left=True, right=True)
 
-            # 如果横向动作预留时间即将用完，当前帧切换为自动驾驶模式
-            if self.keep_time > 0 and  self.keep_time_index + 1 == self.keep_time:
-                self.keep_time_index += 1
-                # print("ADV--->>>>>>>>>>>>>11111>>>>>>>>>>>",self.keep_time_index, self.keep_time)
-                self.autopilot(self.gl.adv.id)
-            else:
-                # print("================================================")
-                # self.gl.ego.show()
-                # self.gl.adv.show()
-                # print("================================================")
-                # 从全局坐标系转换为对抗车车辆坐标系
-                self.trans_world_to_local()
-                # 获取对抗车周围目标物状态
-                self.get_adv_around_state()
-                # 获取模型输入
-                state = self.get_dqn_state_new()
-                # 获取模型输出指令
-                self.ctrl_signal = self.sample_actions_new(state)
-                # self.ctrl_signal = {"lon":"IDLE","lat":"RIGHT_2"}
-                # LEFT_2
-                print("ADV--- model ctrl:", self.ctrl_signal)
-                # 碰撞检测，如果有碰撞危险返回True, 此处会将所有目标转换为对抗车辆坐标系
-                lon_warn , lat_warn = self.collision_warning()
-                if lon_warn:
-                    # 刹车
-                    self.stop(self.gl.adv.id)
-                else:
-                    # 控制指令
-                    self.contrl(lat_warn)
-            # ego colision adv
-            self.collision_check(self.gl.adv, self.gl.ego)
             self.gl.last_compete_name = self.gl.adv.name
             self.gl.last_compete_name_id = self.gl.adv.id
-
         # 释放对抗车控制权
-        if self.gl.adv is None   and  self.gl.last_compete_name != '' or (self.gl.adv is not None and self.gl.last_compete_name != '' and   self.gl.adv.name != self.gl.last_compete_name) :
-            self.gl.scp.vec_light(self.gl.last_compete_name, left=False, right=False)
+        if (self.gl.adv is None   and  self.gl.last_compete_name != '') or \
+                (self.gl.adv is not None and self.gl.last_compete_name != '' and   self.gl.adv.name != self.gl.last_compete_name) :
             # 释放掉之前对抗车控制权
-            self.autopilot(self.gl.last_compete_name_id)
+            actor = self.get_carla_actor(self.gl.last_compete_name_id)
+            if actor:
+                actor.set_autopilot(True)
+            # self.autopilot(self.gl.last_compete_name_id)
             self.gl.compete_time = 0
-        self.sendctrlmsg()
-        # if save_reference_time:
-        #     data = np.array([[  time.time() - loop_start_time  ]])
-        #     df1 = pd.DataFrame(data=data,columns=env_key)
-        #     df = df.append(df1, ignore_index=True)
-            # df = pd.concat(df,df1,ignore_index=True) df.append(df1, ignore_index=True)
+        return py_trees.common.Status.RUNNING
 
-        print("ADV---loop_total_time:", time.time() - loop_start_time)
-        # df.to_csv('./reference_time' + '.csv', encoding='utf_8_sig')
+
+class AdvWaypointFollower:
+    def __init__(self,actor, plan, target_speed):
+        self._actor = actor
+        self._plan = plan
+        self._args_lateral_dict = { 'K_P': 1.0, 'K_D': 0.01, 'K_I': 0.0, 'dt': 0.05 }
+        self._target_speed = target_speed
+        self.local_planner = None
+
+    def set_actor(self,actor,target_speed = 20):
+        self._actor = actor
+        self._target_speed = target_speed
+        self.create_local_planner()
+
+
+    def create_local_planner(self):
+        self.local_planner = LocalPlanner(  # pylint: disable=undefined-variable
+            self._actor, opt_dict={
+                'target_speed': self._target_speed * 3.6,
+                'lateral_control_dict': self._args_lateral_dict,
+                'max_throttle': 1.0})
+    # 初始化局部规划器
+    def _apply_local_planner(self):
+        if self._target_speed is None:
+            self._target_speed = CarlaDataProvider.get_velocity(self._actor)
+
+
+        if self._plan is not None:
+            if isinstance(self._plan[0], carla.Location):
+                plan = []
+                for location in self._plan:
+                    waypoint = CarlaDataProvider.get_map().get_waypoint(location,
+                                                                        project_to_road=True,
+                                                                        lane_type=carla.LaneType.Any)
+                    plan.append((waypoint, RoadOption.LANEFOLLOW))
+                self.local_planner.set_global_plan(plan)
+            else:
+                self.local_planner.set_global_plan(self._plan)
+
+    def get_speed(self,vehicle):
+        """
+        Compute speed of a vehicle in Km/h.
+
+            :param vehicle: the vehicle for which speed is calculated
+            :return: speed as a float in Km/h
+        """
+        vel = vehicle.get_velocity()
+
+        return 3.6 * math.sqrt(vel.x ** 2 + vel.y ** 2 + vel.z ** 2)
+    def set_plan(self,plan):
+        self._plan = plan
+
+    def get_plan(self, adv_action):
+        pass
+
+    def update(self,adv_action, action_marking, acc=0):
+        if adv_action in ['LANE_LEFT', 'LANE_RIGHT'] and action_marking  in ['']:
+            self.get_plan(adv_action)
+            self._apply_local_planner()
+
+        elif len(self.local_planner._waypoints_queue) ==  0:  # pylint: disable=protected-access
+            self.get_plan(adv_action)
+            self._apply_local_planner()
+
+        if self._actor is not None and self.local_planner is not None:
+
+            target_speed = self.get_speed(self._actor) + acc * 3.6
+            print("---target_speed:",self.get_speed(self._actor) , target_speed)
+            if target_speed <= 10:
+                target_speed = 10
+            control = self.local_planner.run_step(debug=False,target_speed=target_speed)
+            # if detect_lane_obstacle(self.actor):
+            #     control.throttle = 0.0
+            #     control.brake = 1.0
+            self._actor.apply_control(control)
+            self._draw_waypoints(self._actor.get_world(), self.local_planner._waypoints_queue     ,vertical_shift=0.2, persistency= 10)
+            return True
+    def _draw_waypoints(self,world, waypoints, vertical_shift, persistency=-1):
+        """
+        Draw a list of waypoints at a certain height given in vertical_shift.
+        """
+        for w in waypoints:
+            wp = w[0].transform.location + carla.Location(z=vertical_shift)
+
+            if w[1] == RoadOption.LEFT:  # Yellow
+                color = carla.Color(255, 255, 0)
+            elif w[1] == RoadOption.RIGHT:  # Cyan
+                color = carla.Color(0, 255, 255)
+            elif w[1] == RoadOption.CHANGELANELEFT:  # Orange
+                color = carla.Color(255, 64, 0)
+            elif w[1] == RoadOption.CHANGELANERIGHT:  # Dark Cyan
+                color = carla.Color(0, 64, 255)
+            elif w[1] == RoadOption.STRAIGHT:  # Gray
+                color = carla.Color(128, 128, 128)
+            else:  # LANEFOLLOW
+                color = carla.Color(0, 255, 0)  # Green
+
+            world.debug.draw_point(wp, size=0.1, color=color, life_time=0.1)
+
+        # world.debug.draw_point(waypoints[0][0].transform.location + carla.Location(z=vertical_shift), size=0.5,
+        #                        color=carla.Color(0, 0, 255), life_time=10)
+        #
+        # world.debug.draw_point(waypoints[-1][0].transform.location + carla.Location(z=vertical_shift), size=0.5,
+        #                        color=carla.Color(255, 0, 0), life_time=10)
+
+class AdvPlanner(AdvWaypointFollower):
+    def __init__(self,actor = None, plan=None, target_speed=0):
+        self._direction = 'left'
+        self._distance_same_lane = 5
+        self._distance_other_lane = 25
+        self._distance_lane_change = 10
+        self._lane_changes = 1
+        self._target_lane_id = None
+        super(AdvPlanner,self).__init__(actor, plan, target_speed)
+
+    def get_plan(self, adv_action):
+        # get start position
+        position_actor = CarlaDataProvider.get_map().get_waypoint(self._actor.get_location())
+        if adv_action == 'LANE_LEFT':
+            self._direction = 'left'
+        elif adv_action == 'LANE_RIGHT':
+            self._direction = 'right'
+        else:
+            self._direction = 'idle'
+
+        if self._direction == 'idle':
+            self._plan, self._target_lane_id = generate_target_waypoint_list_samelane(
+                position_actor)
+        else:
+            # calculate plan with scenario_helper function
+            self._plan, self._target_lane_id = generate_target_waypoint_list_multilane(
+                position_actor, self._direction, self._distance_same_lane,
+                self._distance_other_lane, self._distance_lane_change, check=True, lane_changes=self._lane_changes)
+
+    def update(self,adv_action,action_marking,acc = 0):
+        print("a--------dv:",adv_action,action_marking,acc)
+        super(AdvPlanner, self).update(adv_action,action_marking,acc)
+
+
+
+
+
+

@@ -36,6 +36,8 @@ def check_lane_intersection(lane1_center, lane1_width, lane2_center, lane2_width
     return intersection, intersection_center
 
 def trans2angle(x, y, theta,ratate = 1):
+    # 逆时针旋转为正，顺时针旋转为负
+    # 全局坐标转局部坐标系， 局部坐标转全局坐标系
     theta = ratate*theta
     tmp_x = x
     tmp_y = y

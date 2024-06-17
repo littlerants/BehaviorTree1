@@ -91,7 +91,7 @@ class OBJECT():
     def trans_cood2(self, base_obj, position_flag = False,velocity_flag = False,acc_flag = False ,rotate = -1):
 
         theta =rotate * base_obj.pos_h
-
+        # theta = (theta / 180) * np.pi
         if position_flag:
             pos_x = self.pos_x - base_obj.pos_x
             pos_y = self.pos_y - base_obj.pos_y
@@ -232,7 +232,7 @@ class OBJECT():
     def global_trans_local(self, base_obj, position_flag=False, velocity_flag=False, acc_flag=False, rotate=-1):
 
         theta = rotate * base_obj.pos_h
-        theta = (theta/180)*3.1415926
+        theta = (theta/180)*np.pi
         # if position_flag:
         #     pos_x = self.pos_x - base_obj.pos_x
         #     pos_y = self.pos_y - base_obj.pos_y

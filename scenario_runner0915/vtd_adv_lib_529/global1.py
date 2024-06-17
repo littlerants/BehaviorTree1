@@ -23,7 +23,7 @@ class GLOBAL():
         self.front_vec_to_compete = None
         self.bake_vec_to_compete = None
         self.compete_time = 0
-        self.compete_time_range = 300
+        self.compete_time_range = 500
         self.last_compete_name= ''
         self.last_compete_name_id = -1
         self.show_log = True
