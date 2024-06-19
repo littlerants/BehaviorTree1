@@ -105,7 +105,31 @@ class CarlaDataProvider(object):  # pylint: disable=too-many-public-methods
                     "Vehicle '{}' already registered. Cannot register twice!".format(actor.id))
             else:
                 CarlaDataProvider._actor_transform_map[actor] = transform
+    @staticmethod
+    def register_actor_tf(actor, transform=None):
+        """
+        Add new actor to dictionaries
+        If actor already exists, throw an exception
+        """
 
+        if actor in CarlaDataProvider._actor_velocity_map:
+            raise KeyError(
+                "Vehicle '{}' already registered. Cannot register twice!".format(actor.id))
+        else:
+            CarlaDataProvider._actor_velocity_map[actor] = 0.0
+        if actor in CarlaDataProvider._actor_location_map:
+            raise KeyError(
+                "Vehicle '{}' already registered. Cannot register twice!".format(actor.id))
+        elif transform:
+            CarlaDataProvider._actor_location_map[actor] = transform.location
+        else:
+            CarlaDataProvider._actor_location_map[actor] = None
+
+        if actor in CarlaDataProvider._actor_transform_map:
+            raise KeyError(
+                "Vehicle '{}' already registered. Cannot register twice!".format(actor.id))
+        else:
+            CarlaDataProvider._actor_transform_map[actor] = transform
     @staticmethod
     def update_osc_global_params(parameters):
         """
@@ -874,7 +898,90 @@ class CarlaDataProvider(object):  # pylint: disable=too-many-public-methods
             CarlaDataProvider.register_actor(actor, spawn_point)
 
         return actors
+    @staticmethod
+    def request_new_batch_actors_with_specified_model_sets(
+        models,
+        amount,
+        spawn_points,
+        autopilot=False,
+        random_location=False,
+        rolename="scenario",
+        attribute_filter=None,
+        tick=True,
+        veloc=5
+    ):
+        """
+        Simplified version of "request_new_actors". This method also create
+        several actors in batch.
 
+        Instead of needing a list of ActorConfigurationData,
+        an "amount" parameter is used.
+        This makes actor spawning easier but reduces the amount of configurability.
+
+        Some parameters are the same for all actors (rolename,
+        autopilot and random location)
+        while others are randomized (color)
+        """
+
+        SpawnActor = carla.command.SpawnActor  # pylint: disable=invalid-name
+        SetAutopilot = carla.command.SetAutopilot  # pylint: disable=invalid-name
+        FutureActor = carla.command.FutureActor  # pylint: disable=invalid-name
+        Velocity = carla.command.ApplyTargetVelocity
+        CarlaDataProvider.generate_spawn_points()
+
+        batch = []
+
+        for i in range(amount):
+            # Get vehicle by model
+            model = models[i]
+            # model = random.choice(models)
+            blueprint = CarlaDataProvider.create_blueprint(
+                model, rolename, attribute_filter=attribute_filter
+            )
+
+            if random_location:
+                if CarlaDataProvider._spawn_index >= len(
+                    CarlaDataProvider._spawn_points
+                ):
+                    print(
+                        "No more spawn points to use. "
+                        "Spawned {} actors out of {}".format(i + 1, amount)
+                    )
+                    break
+                else:
+                    spawn_point = CarlaDataProvider._spawn_points[
+                        CarlaDataProvider._spawn_index
+                    ]  # pylint: disable=unsubscriptable-object
+                    CarlaDataProvider._spawn_index += 1
+            else:
+                try:
+                    spawn_point = spawn_points[i]
+                except IndexError:
+                    print(
+                        "The amount of spawn points is lower "
+                        "than the amount of vehicles spawned"
+                    )
+                    break
+
+            if spawn_point:
+                batch.append(
+                    SpawnActor(blueprint, spawn_point).then(
+                        SetAutopilot(
+                            FutureActor,
+                            autopilot,
+                            CarlaDataProvider._traffic_manager_port,
+                        )
+                    ).then(Velocity(FutureActor, CarlaDataProvider.trans_velocity(veloc + random.randint(0,4)*3, spawn_point.rotation.yaw  ) ))
+                )
+
+        actors = CarlaDataProvider.handle_actor_batch(batch, tick)
+        for actor in actors:
+            if actor is None:
+                continue
+            CarlaDataProvider._carla_actor_pool[actor.id] = actor
+            CarlaDataProvider.register_actor_tf(actor)
+
+        return actors
     @staticmethod
     def request_new_batch_actors_physics_toparkinglot(model, amount, spawn_point, autopilot=False,
                                   rolename='scenario', attribute_filter=None, tick=True,physics = False):

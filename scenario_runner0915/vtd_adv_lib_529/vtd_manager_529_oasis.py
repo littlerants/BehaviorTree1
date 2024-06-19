@@ -949,30 +949,31 @@ class ADV_Manager(AtomicBehavior):
             safe_dis  = safe_dis * 0.4
             print("new safe dis:",safe_dis)
         ## 对抗车左右两侧是否可以便道
-        left_lane = 1 if abs(self.gl.adv.leftLaneId) < 30 else 0
-        right_lane = 1 if abs(self.gl.adv.rightLaneId) < 30 else 0
-        # 对抗车前方有行使车辆，便道处理
-        if (ahw  and not ahw.static and ahw.pos_x < 10 and self.gl.adv.lane_id ==  ahw.lane_id):
-
-            if left_lane and  self.check_lane_change_action(self.gl.left_neib_front_vec_to_compete, self.gl.left_neib_bake_vec_to_compete):
-                self.ctrl_signal['lat'] = "LANE_LEFT"
-                return False
-            elif right_lane and self.check_lane_change_action(self.gl.right_neib_front_vec_to_compete,self.gl.right_neib_bake_vec_to_compete):
-                self.ctrl_signal['lat'] = "LANE_RIGHT"
-                return False
+        # left_lane = 1 if abs(self.gl.adv.leftLaneId) < 30 else 0
+        # right_lane = 1 if abs(self.gl.adv.rightLaneId) < 30 else 0
+        # 对抗车前方有行使车辆，变道处理
+        # if (ahw  and not ahw.static and ahw.pos_x < 10 and self.gl.adv.lane_id ==  ahw.lane_id):
+        #
+        #     if left_lane and  self.check_lane_change_action(self.gl.left_neib_front_vec_to_compete, self.gl.left_neib_bake_vec_to_compete):
+        #         self.ctrl_signal['lat'] = "LANE_LEFT"
+        #         return False
+        #     elif right_lane and self.check_lane_change_action(self.gl.right_neib_front_vec_to_compete,self.gl.right_neib_bake_vec_to_compete):
+        #         self.ctrl_signal['lat'] = "LANE_RIGHT"
+        #         return False
         # 对抗车在主车前方时
-        if self.gl.adv.direction_to_ego == 0:
-            if self.ctrl_signal['lat'] == 'LANE_RIGHT' and self.gl.right_neib_bake_vec_to_compete and abs(self.gl.right_neib_bake_vec_to_compete.pos_x) < abs(self.gl.ego.pos_x) :
-                right_lane = 0
-                return True
-            if self.ctrl_signal['lat'] == 'LANE_LEFT' and self.gl.left_neib_bake_vec_to_compete and  abs(self.gl.left_neib_bake_vec_to_compete.pos_x) < abs(self.gl.ego.pos_x):
-                left_lane = 0
-                return True
-            # lane_off_set -= gain
-            print("ADV---left_lane and right_lane:",left_lane,right_lane)
+        # if self.gl.adv.direction_to_ego == 0:
+        #     if self.ctrl_signal['lat'] == 'LANE_RIGHT' and self.gl.right_neib_bake_vec_to_compete and abs(self.gl.right_neib_bake_vec_to_compete.pos_x) < abs(self.gl.ego.pos_x) :
+        #         right_lane = 0
+        #         return True
+        #     if self.ctrl_signal['lat'] == 'LANE_LEFT' and self.gl.left_neib_bake_vec_to_compete and  abs(self.gl.left_neib_bake_vec_to_compete.pos_x) < abs(self.gl.ego.pos_x):
+        #         left_lane = 0
+        #         return True
+        #     # lane_off_set -= gain
+        #     print("ADV---left_lane and right_lane:",left_lane,right_lane)
         #  主车在对抗车右侧，禁止左方向移动
         if self.ctrl_signal['lat'] == 'LANE_LEFT' and self.gl.ego.pos_y < -2:
             left_lane = 0
+            print("-----------主车在对抗车右侧，禁止左方向移动")
             return True
         #  主车在对抗车左侧，禁止右方向移动
         if self.ctrl_signal['lat'] == 'LANE_RIGHT' and  self.gl.ego.pos_y > 2:
@@ -1033,13 +1034,16 @@ class ADV_Manager(AtomicBehavior):
         # # 横向控制指令如果有碰撞风险，或 对抗车在主车后面且在不同车道 则取消横向控制指令下发
         # # print("lat_warn:",lat_warn)
         if self.check_lane_change():
+            print("ADV---stop lat act!!!")
+            self.stop_lat_act_carla()
+            return -1
             # 如果此时正在进行变道动作期间，则动作无法撤回,即变道动作已经执行，横向警告拦截失败
-            if self.action_marking in ["LANE_LEFT", "LANE_RIGHT"]:
-                print("ADV---lane change action can not stop!!!")
-            else:
-                print("ADV---stop lat act!!!")
-                self.stop_lat_act_carla()
-                return  -1
+            # if self.action_marking in ["LANE_LEFT", "LANE_RIGHT"]:
+            #     print("ADV---lane change action can not stop!!!")
+            # else:
+            #     print("ADV---stop lat act!!!")
+            #     self.stop_lat_act_carla()
+            #     return  -1
 
         print(">>>>>>>>>>>>>>>>>>>")
         print("keep_time:",self.keep_time)
@@ -1412,8 +1416,6 @@ class ADV_Manager(AtomicBehavior):
                                                           self.gl.right_neib_bake_vec_to_compete):
             right_lane = 0
         return left_lane,right_lane
-
-
 
     # 获取强化学习模型输入状态
     def get_dqn_state_new(self):

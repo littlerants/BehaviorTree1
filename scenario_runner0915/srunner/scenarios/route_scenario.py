@@ -40,7 +40,8 @@ from srunner.scenariomanager.scenarioatomics.atomic_criteria import (CollisionTe
 
 from srunner.scenarios.basic_scenario import BasicScenario
 from srunner.scenarios.background_activity import BackgroundBehavior
-from srunner.scenarios.BAtrafficflow import BAtrafficflow
+# from srunner.scenarios.BAtrafficflow import BAtrafficflow
+from srunner.scenarios.BAtrafficflow_bake import BAtrafficflow
 
 from srunner.scenariomanager.weather_sim import RouteWeatherBehavior
 from srunner.scenariomanager.lights_sim import RouteLightsBehavior
@@ -303,7 +304,51 @@ class RouteScenario(BasicScenario):
 
         # Add the Background Activity
         # behavior.add_child(BackgroundBehavior(self.ego_vehicles[0], name="BackgroundActivity"))
-        behavior.add_child(BAtrafficflow(self.ego_vehicles[0], name="BAtrifficflow"))
+
+        traffic_follow =  {
+            "name": "traffic_xxx",
+            "centralObject": "ego_vehicle",  # 生效区域
+            "semiMajorAxis": "100",  # 生成半径
+            "innerRadius": "20",  # 内半径
+            "numberOfVehicles": "3",  # 车辆数量
+            "numberOfPedestrian": "40",  # 行人数量
+            # 车辆比例
+            "trafficDistribution": {
+                "car": "50",  # 乘用车
+                "van": "20",  # 厢式货车
+                "truck": "10",  # truck
+                "trailer": "0",  # trailer
+                "semitrailer": "0",  # 半挂车
+                "bus": "0",  # 公共汽车
+                "motorbike": "20",  # 摩托车
+                "bicycle": "0",  # 自行车
+                "special_vehicles": "0"  # 特种车辆
+            },
+            # 行驶方向分布
+            "directionOfTravelDistribution": {
+                "same": 50,  # 同向分布比例
+                "opposite": 50  # 反向分布比例
+            },
+
+            # 驾驶模型
+            "drivingModel": {
+                # 模型类别RuleBased/AIModel 仅当为RuleBased时有下面三个字段和值
+                "controllerType": "RuleBased",
+                "Cooperative": 34,  # 保守
+                "Moderate": 33,  # 正常
+                "Aggressive": 33  # 激进
+            },
+            # 对抗模型
+            "adversarialModel": {
+                # 对抗模型开关 true/false 仅当值为true时有下面三个字段和值
+                "adversarialModelEnable": "true",
+                "effectRange": "100",  # 作用范围
+                "effectDuration": "10",  # 作用时间
+                "adversarialLevel": "0.5"  # 激进程度
+            }
+        }
+
+        behavior.add_child(BAtrafficflow(self.ego_vehicles[0], tf_param = traffic_follow, name="BAtrifficflow"))
         behavior.add_child(ADV_Manager(self.ego_vehicles[0], name="ADV_Manager"))
         behavior.add_children(scenario_behaviors)
         return behavior
@@ -341,7 +386,6 @@ class RouteScenario(BasicScenario):
             criteria.add_child(
                 self._create_criterion_tree(scenario, scenario_criteria)
             )
-
         return criteria
 
     def _create_weather_behavior(self):

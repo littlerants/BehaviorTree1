@@ -20,7 +20,7 @@ class PREPARE():
     def carla_get_points(self):
         self.confrontation_position = [-1,-1]
         # self.wallpoints = [[-229,23.73],[-225.45,23.0]]
-        self.wallpoints = [[-229,43.73]]
+        self.wallpoints = [[-232,43.73]]
         self.adv_enable = []
     # 从xodr中获取相遇点坐标
     def get_points(self):
