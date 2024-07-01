@@ -1,14 +1,16 @@
 # from argparse import ArgumentParser
 # from vtd_adv_lib_529.vtd_manager_513 import ADV_Manager
 import os
-import sys
-
-# sys.path.insert(0,os.path.join(os.getenv('ADVPATH'),'gym_sumo'))
-# sys.path.insert(0,  os.getenv('ADVPATH') )
-
+# import sys
+# # sys.path.insert(0,os.path.join(os.getenv('ADVPATH'),'gym_sumo'))
+# # sys.path.insert(0,  os.getenv('ADVPATH') )
+# os.environ['ADVPATH'] = os.getcwd().replace('\\','/')
+# sys.path.insert(0,os.environ['ADVPATH'])
+# print("sys path",sys.path)
 # os.environ['ADVPATH'] = "/home/vtd/VTD.2.2/simulate_VTD_ADV_traffic/"
-os.environ['ADVPATH'] = "/home/zjx/work/BehaviorTree1/scenario_runner0915/"
-print("sys path",sys.path)
+# os.environ['ADVPATH'] = "/home/zjx/work/BehaviorTree1/scenario_runner0915/"
+# # os.environ['ADVPATH'] = "/home/zjx/work/trafficflow/cloud/simulation-executor/scenario_runner/srunner/scenarios/traffic_flow/adv_lib/"
+# print("sys path",sys.path)
 
 class MODEL_CONFIG:
     def __init__(self,config):

@@ -7,6 +7,9 @@ oasis替换自己的simulation代码
 	./install_service.sh
 3. 查看simulation log：
 	docker logs oasis-simulation
+	
+	
+	
 背景车辆生成代码汇总：
 
 在CarlaDataProvider类中，定义了所有在carla世界中生成方法：

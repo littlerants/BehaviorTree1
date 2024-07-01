@@ -1,0 +1,25 @@
+<routes>
+   <route id="0" town="Town06">
+      <!-- <weathers>
+      <route id="0" town="OpenDriveMap">
+         <weather route_percentage="0"
+            cloudiness="5.0" precipitation="0.0" precipitation_deposits="0.0" wetness="0.0"
+            wind_intensity="10.0" sun_azimuth_angle="-1.0" sun_altitude_angle="90.0" fog_density="2.0"/>
+         <weather route_percentage="100"
+            cloudiness="5.0" precipitation="0.0" precipitation_deposits="0.0" wetness="0.0"
+            wind_intensity="10.0" sun_azimuth_angle="-1.0" sun_altitude_angle="15.0" fog_density="2.0"/>
+      </weathers> -->
+<!--      <waypoints>-->
+<!--         <position x="-229.6" y="63" z="0.0"  h="3.512110" p="0.0"  r="0.0"/>-->
+<!--         <position x="-107" y="-142" z="0.0"/>-->
+<!--         <position x="-121" y="-24" z="0.0"/>-->
+<!--      </waypoints>-->
+      <waypoints>
+         <position x="336" y="42.3" z="0.0"  h="3.512110" p="0.0"  r="0.0"/>
+         <position x="25" y="45.3" z="0.0"/>
+         <position x="-81" y="45.3" z="0.0"/>
+      </waypoints>
+      <scenarios>
+      </scenarios>
+   </route>
+</routes>

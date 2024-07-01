@@ -408,7 +408,6 @@ class ScenarioRunner(object):
                                         config=config,
                                         osc2_file=self._args.openscenario2,
                                         timeout=100000)
-
             else:
                 scenario_class = self._get_scenario_class_or_fail(config.type)
                 scenario = scenario_class(world=self.world,
@@ -635,7 +634,7 @@ def main():
 
     if arguments.route:
         arguments.reloadWorld = True
-    # arguments.sync = True
+    arguments.sync = True
     if arguments.agent:
         arguments.sync = True
 

@@ -10,7 +10,6 @@ This module provides Challenge routes as standalone scenarios
 """
 
 from __future__ import print_function
-
 import glob
 import os
 import sys
@@ -40,8 +39,8 @@ from srunner.scenariomanager.scenarioatomics.atomic_criteria import (CollisionTe
 
 from srunner.scenarios.basic_scenario import BasicScenario
 from srunner.scenarios.background_activity import BackgroundBehavior
-# from srunner.scenarios.BAtrafficflow import BAtrafficflow
-from srunner.scenarios.BAtrafficflow_bake import BAtrafficflow
+from srunner.scenarios.BAtrafficflow import BAtrafficflow
+# from srunner.scenarios.BAtrafficflow_bake import BAtrafficflow
 
 from srunner.scenariomanager.weather_sim import RouteWeatherBehavior
 from srunner.scenariomanager.lights_sim import RouteLightsBehavior
@@ -50,7 +49,8 @@ from srunner.scenariomanager.timer import RouteTimeoutBehavior
 from srunner.tools.route_parser import RouteParser, DIST_THRESHOLD
 from srunner.tools.route_manipulation import interpolate_trajectory
 # from vtd_adv_lib.oasis_manager01 import ADV_Manager
-from vtd_adv_lib_529.vtd_manager_529_oasis import ADV_Manager
+# from vtd_adv_lib_529.vtd_manager_529_oasis_onnx import ADV_Manager
+from adv_lib.adv_manager_oasis_onnx import ADV_Manager
 
 SECONDS_GIVEN_PER_METERS = 0.4
 
@@ -309,20 +309,20 @@ class RouteScenario(BasicScenario):
             "name": "traffic_xxx",
             "centralObject": "ego_vehicle",  # 生效区域
             "semiMajorAxis": "100",  # 生成半径
-            "innerRadius": "20",  # 内半径
-            "numberOfVehicles": "3",  # 车辆数量
+            "innerRadius": "0",  # 内半径
+            "numberOfVehicles": "10",  # 车辆数量
             "numberOfPedestrian": "40",  # 行人数量
             # 车辆比例
             "trafficDistribution": {
-                "car": "50",  # 乘用车
+                "car": "40",  # 乘用车
                 "van": "20",  # 厢式货车
-                "truck": "10",  # truck
-                "trailer": "0",  # trailer
+                "truck": "20",  # 卡车
+                "trailer": "0",  # 拖车
                 "semitrailer": "0",  # 半挂车
                 "bus": "0",  # 公共汽车
-                "motorbike": "20",  # 摩托车
+                "motorbike": "10",  # 摩托车
                 "bicycle": "0",  # 自行车
-                "special_vehicles": "0"  # 特种车辆
+                "special_vehicles": "10"  # 特种车辆
             },
             # 行驶方向分布
             "directionOfTravelDistribution": {
@@ -349,7 +349,7 @@ class RouteScenario(BasicScenario):
         }
 
         behavior.add_child(BAtrafficflow(self.ego_vehicles[0], tf_param = traffic_follow, name="BAtrifficflow"))
-        behavior.add_child(ADV_Manager(self.ego_vehicles[0], name="ADV_Manager"))
+        # behavior.add_child(ADV_Manager(self.ego_vehicles[0], name="ADV_Manager"))
         behavior.add_children(scenario_behaviors)
         return behavior
 

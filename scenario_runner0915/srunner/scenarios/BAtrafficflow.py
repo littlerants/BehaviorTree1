@@ -20,26 +20,50 @@ from srunner.tools.scenario_helper import (
 from srunner.scenariomanager.carla_data_provider import (
     CarlaDataProvider,
 )
+CARLA_TYPE_TO_WALKER = {
+    "pedestrian":[
+        "walker.pedestrian.0001",
+        "walker.pedestrian.0002",
+        "walker.pedestrian.0003",
+        "walker.pedestrian.0004",
+        "walker.pedestrian.0005",
+        "walker.pedestrian.0006",
+        "walker.pedestrian.0007",
+        "walker.pedestrian.0008",
+        "walker.pedestrian.0009",
+        "walker.pedestrian.0010",
+
+    ]
+}
+
+# "vehicle.audi.a2",
+# "vehicle.audi.tt",
+# "vehicle.jeep.wrangler_rubicon",
+# "vehicle.chevrolet.impala",
+# "vehicle.bmw.grandtourer",
+# "vehicle.citroen.c3",
+# "vehicle.seat.leon",
+# "vehicle.nissan.patrol",
+# "vehicle.nissan.micra",
+# "vehicle.audi.etron",
+# "vehicle.toyota.prius",
+# "vehicle.tesla.model3",
+# "vehicle.tesla.cybertruck",
 
 # EGO_ROAD = 'road'
-SUMO_CARLA_TYPE_TO_VEHICLE = {
+CARLA_TYPE_TO_VEHICLE = {
     "car": [
         "vehicle.audi.a2",
         "vehicle.audi.tt",
         "vehicle.jeep.wrangler_rubicon",
-        "vehicle.chevrolet.impala",
-        "vehicle.bmw.grandtourer",
-        "vehicle.citroen.c3",
-        "vehicle.seat.leon",
-        "vehicle.nissan.patrol",
-        "vehicle.nissan.micra",
-        "vehicle.audi.etron",
         "vehicle.toyota.prius",
         "vehicle.tesla.model3",
-        "vehicle.tesla.cybertruck",
+        "vehicle.mercedes.coupe_2020",
+        "vehicle.mini.cooper_s"
+
     ],
     "van": ["vehicle.volkswagen.t2"],
-    "truck": ["vehicle.carlamotors.carlacola", "vehicle.synkrotron.box_truck"],
+    "truck": ["vehicle.tesla.cybertruck","vehicle.carlamotors.carlacola", "vehicle.synkrotron.box_truck", "vehicle.mercedes.sprinter",],
     'trailer': [],
     'semitrailer': [],
     'bus': [],
@@ -53,7 +77,9 @@ SUMO_CARLA_TYPE_TO_VEHICLE = {
         "vehicle.gazelle.omafiets",
         "vehicle.bh.crossbike",
     ],
-    'special_vehicles':[],
+    'special_vehicles':[
+        "vehicle.ford.ambulance"
+    ],
 }
 
 
@@ -104,8 +130,8 @@ class BAtrafficflow(AtomicBehavior):
         self.numberOfPedestrian = int(tf_param['numberOfPedestrian'])
         self.trafficDistribution = tf_param['trafficDistribution']
         self.directionOfTravelDistribution = tf_param['directionOfTravelDistribution']
-        self.same = self.directionOfTravelDistribution['same']
-        self.opposite = self.directionOfTravelDistribution['opposite']
+        self.same = self.directionOfTravelDistribution['same']*0.01
+        self.opposite = self.directionOfTravelDistribution['opposite']*0.01
         self.drivingModel = tf_param['drivingModel']
         # self.controllerType = tf_param['drivingModel']
         # self.controllerDistribution = tf_param['controllerDistribution']
@@ -113,12 +139,12 @@ class BAtrafficflow(AtomicBehavior):
         if self.drivingModel['controllerType'] == 'Cooperative':
             self._vehicle_lane_change = False
             self._vehicle_lights = False
-            self._vehicle_leading_distance = 15
+            self._vehicle_leading_distance = 20
             self._vehicle_offset = 0.1
         else:
             self._vehicle_lane_change = True
             self._vehicle_lights = False
-            self._vehicle_leading_distance = 10
+            self._vehicle_leading_distance = 15
             self._vehicle_offset = 0.5
         # 车辆与生成半径约束关系
         self.max_vecs = (
@@ -128,7 +154,7 @@ class BAtrafficflow(AtomicBehavior):
         )
         self.vehicles_ratio = [
             int(tf_param["trafficDistribution"][t])
-            for t in list(SUMO_CARLA_TYPE_TO_VEHICLE.keys())
+            for t in list(CARLA_TYPE_TO_VEHICLE.keys())
         ]
         self.vehicles_ratio = [
             ratio / sum(self.vehicles_ratio) for ratio in self.vehicles_ratio
@@ -155,23 +181,25 @@ class BAtrafficflow(AtomicBehavior):
         # calculate fake junctions
         self._calculate_fake_junctions(self.debug)
         # 获取主车初始位置
-        ego_wp = self._map.get_waypoint(self._ego_actor.get_location())
-        same_dir_wps = get_same_dir_lanes(ego_wp)
-        opposite_dir_wps = get_opposite_dir_lanes(ego_wp)
-        # # 初始化辆车
-        self._initialise_road_behavior(ego_wp, same_dir_wps + opposite_dir_wps)
+        # ego_wp = self._map.get_waypoint(self._ego_actor.get_location())
+        # same_dir_wps = get_same_dir_lanes(ego_wp)
+        # opposite_dir_wps = get_opposite_dir_lanes(ego_wp)
+        # # # 初始化辆车
+        # self._initialise_road_behavior(ego_wp, same_dir_wps + opposite_dir_wps)
     def set_speed(self,vec_wp,i):
         # 如果在十字路口中或者前方是十字路口，则车辆可能会打滑，减速处理
         # 此处获取车辆前方五米wp，如果为空，返回None
         ahead_wp =vec_wp.next(10) if  len(vec_wp.next(10)) > 0 else None
         if vec_wp.is_junction or (ahead_wp and  ahead_wp[0].is_junction):
             self._tm.set_desired_speed(self._vehicle_list[i], 20)
-        elif self.frame%500 == 0:
+        elif self.frame%30 == 0:
             if self.get_speed() * 3.6 > 5:
                 speed = self.get_speed()*3.6*random.randint(2,10) + 10
             else :
                 speed = 30
             self._tm.set_desired_speed(self._vehicle_list[i], speed)
+        elif self.get_speed(self._vehicle_list[i]) <= 1:
+            self._tm.set_desired_speed(self._vehicle_list[i], 30)
         # 此处判断保护，防止i溢出
         # elif i < len(self._vehicle_list) :
         #     if self.get_speed() > 5:
@@ -190,7 +218,6 @@ class BAtrafficflow(AtomicBehavior):
         flag = True
         ego_wp = self._map.get_waypoint(self._ego_actor.get_location())
         self.frame += 1
-
         destroy_indexs = []
         # 临时变量
         front_tmpmax = 0
@@ -292,11 +319,15 @@ class BAtrafficflow(AtomicBehavior):
 
     def _add_road_vecs(self, ego_wp, same_dir_wps, opposite_dir_wps, rdm=False):
         spawn_wps = []
-        offset_var = self.semiMajorAxis * 0.1 if self.semiMajorAxis * 0.1 > 15 else 15
+        # offset_var = self.semiMajorAxis * 0.1 if self.semiMajorAxis * 0.1 > 15 else 15
+        offset_var = 0
 
         speed_dist = self.get_speed()
         for wp in same_dir_wps:
+
             same_num = int(self.numberOfVehicles * self.same / len(same_dir_wps))
+            if same_num <1 and self.numberOfVehicles * self.same > 0:
+                same_num = 1
             innerboundarywp = wp.next(self.innerRadius + 1)
 
             next_wp_queue = [innerboundarywp[random.randint(0, len(innerboundarywp) - 1)]]
@@ -311,7 +342,7 @@ class BAtrafficflow(AtomicBehavior):
                     temp_next_wps = temp_wp.next(
                         self.front_traffic_bound/2
                         + self._road_spawn_dist
-                        + random.randint(0, 4) * 3
+                        + random.randint(0, 4) * 2
                         + speed_dist * 2
                         + offset
                     )
@@ -337,7 +368,6 @@ class BAtrafficflow(AtomicBehavior):
                 next_wp_queue = temp_next_wp_queue
 
             innerboundarywp = wp.previous(self.innerRadius + 1)
-
             prev_wp_queue = [innerboundarywp[random.randint(0, len(innerboundarywp) - 1)]]
             # spawn_wps.insert(0, prev_wp_queue[0])
             offset = 0
@@ -350,8 +380,8 @@ class BAtrafficflow(AtomicBehavior):
                     temp_prev_wps = temp_wp.previous(
                         self.back_traffic_bound/2
                         + self._road_spawn_dist
-                        + random.randint(0, 3) * 3
-                        + speed_dist * 1
+                        + random.randint(0, 3) * 2
+                        + speed_dist * 2
                         + offset
                     )
                     num_wps = len(temp_prev_wps)
@@ -376,6 +406,8 @@ class BAtrafficflow(AtomicBehavior):
         opp_spawn_wps = []
         for wp in opposite_dir_wps:
             opposite_num = int(self.numberOfVehicles * self.opposite / len(opposite_dir_wps))
+            if opposite_num < 1 and self.numberOfVehicles * self.opposite > 0:
+                opposite_num = 1
             innerboundarywp = wp.previous(self.innerRadius + 1)
             prev_wp_queue = [innerboundarywp[random.randint(0, len(innerboundarywp) - 1)]]
             # opp_spawn_wps.insert(0, prev_wp_queue[0])
@@ -389,6 +421,7 @@ class BAtrafficflow(AtomicBehavior):
                         self.front_traffic_bound_opp
                         + self._road_spawn_dist
                         + random.randint(0, 4) * 3
+                        + speed_dist * 3
                         + offset
                     )
                     num_wps = len(temp_prev_wps)
@@ -411,7 +444,7 @@ class BAtrafficflow(AtomicBehavior):
                     opp_spawn_wps.append(temp_prev_wp)
                 prev_wp_queue = temp_prev_wp_queue
         spawn_points_filtered = []
-        # num = 0
+        num = 0
         # if len(spawn_wps) + len(opp_spawn_wps) < self.max_vecs:
         #     for i, around_spawn_point in enumerate(
         #         self.apll_spawn_points
@@ -440,7 +473,7 @@ class BAtrafficflow(AtomicBehavior):
         #             else:
         #                 break
         # print("len(spawn_points_filtered):", len(spawn_points_filtered))
-        if len(spawn_wps) > 0:
+        if len(spawn_wps) > 0 or len(opp_spawn_wps) > 0:
             random.shuffle(spawn_wps)
             random.shuffle(opp_spawn_wps)
 
@@ -489,7 +522,7 @@ class BAtrafficflow(AtomicBehavior):
             ]
             tmp_vecs = self._spawn_actors(gl_spawn_wps)
             for i in tmp_vecs:
-                self._tm.set_desired_speed(i, 20)
+                self._tm.set_desired_speed(i, 40)
                 # self._tm.vehicle_percentage_speed_difference(i, -10)
                 # if self.get_speed() > 5:
                 #     self._tm.set_desired_speed(
@@ -606,13 +639,13 @@ class BAtrafficflow(AtomicBehavior):
             # [x for x in range(len(self.vehicles_ratio))], p=self.vehicles_ratio
             [x for x in range(len(self.vehicles_ratio))],size=len(spawn_transforms), p=self.vehicles_ratio
         )
-        # self.vehicle_models = [SUMO_CARLA_TYPE_TO_VEHICLE[t] for t in chosen_vehicle_class ]
-        vehicle_model_list = [list(SUMO_CARLA_TYPE_TO_VEHICLE.keys())[t] for t in chosen_vehicle_class]
+        # self.vehicle_models = [CARLA_TYPE_TO_VEHICLE[t] for t in chosen_vehicle_class ]
+        vehicle_model_list = [list(CARLA_TYPE_TO_VEHICLE.keys())[t] for t in chosen_vehicle_class]
         for obj_type in vehicle_model_list:
-            if SUMO_CARLA_TYPE_TO_VEHICLE[obj_type]:
-                self.vehicle_models_list.append(random.choice( SUMO_CARLA_TYPE_TO_VEHICLE[obj_type] ))
+            if CARLA_TYPE_TO_VEHICLE[obj_type]:
+                self.vehicle_models_list.append(random.choice( CARLA_TYPE_TO_VEHICLE[obj_type] ))
             else:
-                self.vehicle_models_list.append(random.choice(SUMO_CARLA_TYPE_TO_VEHICLE['car']))
+                self.vehicle_models_list.append(random.choice(CARLA_TYPE_TO_VEHICLE['car']))
         actors = CarlaDataProvider.request_new_batch_actors_with_specified_model_sets(
             self.vehicle_models_list,
             len(spawn_transforms),

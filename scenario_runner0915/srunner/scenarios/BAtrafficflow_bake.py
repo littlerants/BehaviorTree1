@@ -17,7 +17,23 @@ from srunner.scenariomanager.carla_data_provider import (
 # EGO_ROAD = 'road'
 
 random.seed( 14 )
-SUMO_CARLA_TYPE_TO_VEHICLE = {
+CARLA_TYPE_TO_WALKER = {
+    "pedestrian":[
+        "walker.pedestrian.0001",
+        "walker.pedestrian.0002",
+        "walker.pedestrian.0003",
+        "walker.pedestrian.0004",
+        "walker.pedestrian.0005",
+        "walker.pedestrian.0006",
+        "walker.pedestrian.0007",
+        "walker.pedestrian.0008",
+        "walker.pedestrian.0009",
+        "walker.pedestrian.0010",
+
+    ]
+}
+
+CARLA_TYPE_TO_VEHICLE = {
     "passenger": [
         "vehicle.audi.a2",
         "vehicle.audi.tt",
@@ -191,7 +207,7 @@ class BAtrafficflow(AtomicBehavior):
         if 'radius' not in tf_param :
             tf_param = {}
             tf_param["radius"] = 50
-            tf_param["vehicle_num"] = 3
+            tf_param["vehicle_num"] = 2
             tf_param["vehicles_ratio"] = {'van': 15, 'truck': 10, 'bicycle': 10, 'passenger': 60, 'motorcycle': 5}
             tf_param["vehicle_models"] =[ i.id  for i in self._world.get_blueprint_library().filter('vehicle.*') ]
 
@@ -205,25 +221,25 @@ class BAtrafficflow(AtomicBehavior):
 
         self.vehicles_ratio = [
             tf_param["vehicles_ratio"][t]
-            for t in list(SUMO_CARLA_TYPE_TO_VEHICLE.keys())
+            for t in list(CARLA_TYPE_TO_VEHICLE.keys())
         ]
         # if vehicles_ratio is given as a list of length of one, then extend it to a list
         # with the length of VEHICLE_TYPES and the remaining values being zero
         vehicles_ratio_arg_len = len(tf_param["vehicles_ratio"])
         if vehicles_ratio_arg_len == 1:
             self.vehicles_ratio += [0] * (
-                    len(list(SUMO_CARLA_TYPE_TO_VEHICLE.keys())) - 1
+                    len(list(CARLA_TYPE_TO_VEHICLE.keys())) - 1
             )
-        elif vehicles_ratio_arg_len != len(list(SUMO_CARLA_TYPE_TO_VEHICLE.keys())):
+        elif vehicles_ratio_arg_len != len(list(CARLA_TYPE_TO_VEHICLE.keys())):
             raise Exception(
                 f"The length of vehicles_ratio must be either"
-                f" 1 or {list(SUMO_CARLA_TYPE_TO_VEHICLE.keys())} "
-                f", specifying the ratio of {list(SUMO_CARLA_TYPE_TO_VEHICLE.keys())}"
+                f" 1 or {list(CARLA_TYPE_TO_VEHICLE.keys())} "
+                f", specifying the ratio of {list(CARLA_TYPE_TO_VEHICLE.keys())}"
             )
         vehicle_models_set = set(tf_param["vehicle_models"])
         self.vehicle_models = [
-            list(set(SUMO_CARLA_TYPE_TO_VEHICLE[t]).intersection(vehicle_models_set))
-            for t in SUMO_CARLA_TYPE_TO_VEHICLE.keys()
+            list(set(CARLA_TYPE_TO_VEHICLE[t]).intersection(vehicle_models_set))
+            for t in CARLA_TYPE_TO_VEHICLE.keys()
         ]
         for idx, vehicle_model in enumerate(self.vehicle_models):
             if len(vehicle_model) == 0:

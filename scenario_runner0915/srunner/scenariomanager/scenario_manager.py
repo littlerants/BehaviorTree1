@@ -23,10 +23,6 @@ from srunner.scenariomanager.timer import GameTime
 from srunner.scenariomanager.watchdog import Watchdog
 import carla
 
-
-
-
-
 class ScenarioManager(object):
 
     """
@@ -127,6 +123,7 @@ class ScenarioManager(object):
                 carla.Rotation(yaw=0, pitch=-90, roll=0),
             )
         else:
+            # location.x -= 30
             bv_transform = carla.Transform(
                 transform.location + location + carla.Location(z=100),
                 carla.Rotation(yaw=0, pitch=-90),
@@ -155,6 +152,7 @@ class ScenarioManager(object):
             if timestamp:
                 self._tick_scenario(timestamp)
             if flag:
+                flag = False
                 self._set_spector(self.ego_vehicles[0].get_location(), world)
                 # flag = False
         self.cleanup()
