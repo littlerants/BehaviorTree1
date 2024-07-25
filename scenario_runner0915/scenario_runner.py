@@ -29,7 +29,6 @@ import sys
 import time
 import json
 import pkg_resources
-
 sys.path.append('/home/zjx/software/CARLA_0.9.15/PythonAPI/carla')
 sys.path.insert(0,'/home/zjx/work/BehaviorTree1/scenario_runner0915')
 sys.path.insert(0,'/home/zjx/software/CARLA_0.9.15/PythonAPI/carla/dist/carla-0.9.15-py3.7-linux-x86_64.egg')

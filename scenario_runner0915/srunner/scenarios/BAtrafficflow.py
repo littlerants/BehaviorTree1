@@ -20,6 +20,14 @@ from srunner.tools.scenario_helper import (
 from srunner.scenariomanager.carla_data_provider import (
     CarlaDataProvider,
 )
+import logging
+
+from srunner.scenariomanager.actorcontrols.npc_vehicle_control import NpcVehicleControl
+
+
+
+logger = logging.getLogger(__name__)
+
 CARLA_TYPE_TO_WALKER = {
     "pedestrian":[
         "walker.pedestrian.0001",
@@ -56,6 +64,13 @@ CARLA_TYPE_TO_VEHICLE = {
         "vehicle.audi.a2",
         "vehicle.audi.tt",
         "vehicle.jeep.wrangler_rubicon",
+        "vehicle.chevrolet.impala",
+        "vehicle.bmw.grandtourer",
+        "vehicle.citroen.c3",
+        "vehicle.seat.leon",
+        "vehicle.nissan.patrol",
+        "vehicle.nissan.micra",
+        "vehicle.audi.etron",
         "vehicle.toyota.prius",
         "vehicle.tesla.model3",
         "vehicle.mercedes.coupe_2020",
@@ -73,25 +88,26 @@ CARLA_TYPE_TO_VEHICLE = {
         "vehicle.yamaha.yzf",
     ],
     "bicycle": [
-        "vehicle.diamondback.century",
-        "vehicle.gazelle.omafiets",
-        "vehicle.bh.crossbike",
+        "vehicle.harley-davidson.low_rider",
+        "vehicle.kawasaki.ninja",
+        "vehicle.yamaha.yzf",
     ],
     'special_vehicles':[
         "vehicle.ford.ambulance"
     ],
 }
-
-
-class BAtrafficflow(AtomicBehavior):
+# "vehicle.bh.crossbike",
+# "vehicle.diamondback.century",
+# "vehicle.gazelle.omafiets",
+class OasisTrafficflow(AtomicBehavior):
     """
     Handles the background activity
     """
-    def __init__(self, ego_actor, tf_param=None, debug=False, name="BAtrafficflow"):
+    def __init__(self, ego_actor, tf_param=None, debug=False, name="OasisTrafficflow"):
         """
         Setup class members
         """
-        super(BAtrafficflow, self).__init__(name)
+        super(OasisTrafficflow, self).__init__(name)
         self.debug = debug
         self._map = CarlaDataProvider.get_map()
         self._world = CarlaDataProvider.get_world()
@@ -148,8 +164,8 @@ class BAtrafficflow(AtomicBehavior):
             self._vehicle_offset = 0.5
         # 车辆与生成半径约束关系
         self.max_vecs = (
-            int(self.semiMajorAxis  * 0.4)
-            if self.numberOfVehicles > int(self.semiMajorAxis  * 0.4)
+            int(self.semiMajorAxis  * 0.15)
+            if self.numberOfVehicles > int(self.semiMajorAxis  * 0.15)
             else self.numberOfVehicles
         )
         self.vehicles_ratio = [
@@ -161,9 +177,9 @@ class BAtrafficflow(AtomicBehavior):
         ]
         self.vehicle_models_list = []
         if self.debug:
-            print("vehicles_ratio:", self.vehicles_ratio)
-            print("vehicle_models:", self.vehicle_models)
-            print("tf_param:", tf_param)
+            logger.info(f"vehicles_ratio:{self.vehicles_ratio}")
+            logger.info(f"vehicle_models:{self.vehicle_models}")
+            logger.info(f"tf_param:{tf_param}")
         # 前边界
         self.front_traffic_bound = 0
         # 反向车道前边界
@@ -175,6 +191,8 @@ class BAtrafficflow(AtomicBehavior):
         self.apll_spawn_points = self._world.get_map().get_spawn_points()
         # tm预期速度
         self._tm.global_percentage_speed_difference(-20)
+        self.npcveccontrol = {}
+        # self.initialise()
 
     def initialise(self):
         """Creates the background activity actors. Pressuposes that the ego is at a road"""
@@ -186,20 +204,29 @@ class BAtrafficflow(AtomicBehavior):
         # opposite_dir_wps = get_opposite_dir_lanes(ego_wp)
         # # # 初始化辆车
         # self._initialise_road_behavior(ego_wp, same_dir_wps + opposite_dir_wps)
+
+    def cal_dis_wp2loc(self,actor = None):
+        if actor == None:
+            return None
+        close_wp = self._map.get_waypoint(actor.get_location())
+        location = actor.get_location()
+        return  close_wp.transform.location.distance(location)
+
     def set_speed(self,vec_wp,i):
         # 如果在十字路口中或者前方是十字路口，则车辆可能会打滑，减速处理
         # 此处获取车辆前方五米wp，如果为空，返回None
-        ahead_wp =vec_wp.next(10) if  len(vec_wp.next(10)) > 0 else None
+        ahead_wp =vec_wp.next(60) if  len(vec_wp.next(60)) > 0 else None
         if vec_wp.is_junction or (ahead_wp and  ahead_wp[0].is_junction):
-            self._tm.set_desired_speed(self._vehicle_list[i], 20)
+            self._tm.set_desired_speed(self._vehicle_list[i], 18)
         elif self.frame%30 == 0:
-            if self.get_speed() * 3.6 > 5:
-                speed = self.get_speed()*3.6*random.randint(2,10) + 10
+            if self.get_speed() * 3.6 > 6:
+                speed = self.get_speed()*3.6*random.randint(2,3) + 5
             else :
                 speed = 30
             self._tm.set_desired_speed(self._vehicle_list[i], speed)
         elif self.get_speed(self._vehicle_list[i]) <= 1:
             self._tm.set_desired_speed(self._vehicle_list[i], 30)
+
         # 此处判断保护，防止i溢出
         # elif i < len(self._vehicle_list) :
         #     if self.get_speed() > 5:
@@ -214,108 +241,200 @@ class BAtrafficflow(AtomicBehavior):
         #         )
         #     else:
         #         self._tm.set_desired_speed(self._vehicle_list[i], 30)
-    def update(self):
-        flag = True
-        ego_wp = self._map.get_waypoint(self._ego_actor.get_location())
+    def update1(self):
         self.frame += 1
-        destroy_indexs = []
-        # 临时变量
-        front_tmpmax = 0
-        opp_front_tmpmax = 0
-        bake_tmpmax = 0
-        opp_bake_tmpmax = 0
-        if self.frame % 5== 0:
-            for i in range(len(self._vehicle_list)):
-                # ego车与目标车的距离
-                dist = (self._vehicle_list[i].get_location().distance(ego_wp.transform.location))
-                vec_wp = self._map.get_waypoint(
-                    self._vehicle_list[i].get_location()
-                )
-                # 车辆速度规划
-
-                self.set_speed(vec_wp,i)
-                # 每过一千帧，删除车流车头慢车
-                if (
-                    flag
-                    and self.frame % 1200 == 0
-                    and dist
-                    > (80 if self.semiMajorAxis < 80 else self.semiMajorAxis * 0.6)
-                ):
-                    destroy_indexs.append(self._vehicle_list[i].id)
-                    self._destroy_list.append(
-                        carla.command.DestroyActor(self._vehicle_list[i])
-                    )
-                if (
-                    dist
-                    > (
-                        self.semiMajorAxis
-                    )
-                    + self.get_speed() * 2
-                ):  # 如果车辆与给定坐标的距离大于半径
-                    destroy_indexs.append(self._vehicle_list[i].id)
-                    self._destroy_list.append(
-                        carla.command.DestroyActor(self._vehicle_list[i])
-                    )
-                # 更新前后距离
-                elif (
-                    self.get_local_location(
-                        self._ego_actor, self._vehicle_list[i].get_location()
-                    ).x
-                    > 0
-                    and dist > front_tmpmax
-                    and ego_wp.road_id == vec_wp.road_id
-                    and ego_wp.lane_id * vec_wp.lane_id > 0
-                ):
-                    front_tmpmax = dist
-                elif (
-                    self.get_local_location(
-                        self._ego_actor, self._vehicle_list[i].get_location()
-                    ).x
-                    > 0
-                    and dist > opp_front_tmpmax
-                    and ego_wp.lane_id * vec_wp.lane_id < 0
-                ):
-                    opp_front_tmpmax = dist
-                elif (
-                    self.get_local_location(
-                        self._ego_actor, self._vehicle_list[i].get_location()
-                    ).x
-                    < 0
-                    and dist > bake_tmpmax
-                    and ego_wp.lane_id * vec_wp.lane_id > 0
-                ):
-                    bake_tmpmax = dist
-                elif (
-                    self.get_local_location(
-                        self._ego_actor, self._vehicle_list[i].get_location()
-                    ).x
-                    < 0
-                    and dist > opp_bake_tmpmax
-                    and ego_wp.lane_id * vec_wp.lane_id < 0
-                ):
-                    opp_bake_tmpmax = dist
-            self.front_traffic_bound = front_tmpmax + self.semiMajorAxis * 0.1
-            self.front_traffic_bound_opp = opp_front_tmpmax + self.semiMajorAxis * 0.1
-            self.back_traffic_bound = bake_tmpmax + self.semiMajorAxis * 0.1
-            self.back_traffic_bound_opp = opp_bake_tmpmax + self.semiMajorAxis * 0.1
-            if len(destroy_indexs) > 0:
-                self.client.apply_batch(self._destroy_list)
-                self._vehicle_list = list(
-                    filter(lambda x: x.id not in destroy_indexs, self._vehicle_list)
-                )
-
-            # 补充车辆
-            print("len vehicle list:", len(self._vehicle_list))
-            print("front_traffic_bound:",self.front_traffic_bound)
-            print("front_traffic_bound_opp:",self.front_traffic_bound_opp)
-            print("back_traffic_bound:",self.back_traffic_bound)
-            print("back_traffic_bound_opp:",self.back_traffic_bound_opp)
-
-            if self.frame % 100 == 0 and len(self._vehicle_list) < self.max_vecs:
-                same_dir_wps = get_same_dir_lanes(ego_wp)
-                opposite_dir_wps = get_opposite_dir_lanes(ego_wp)
-                self._add_road_vecs(ego_wp, same_dir_wps, opposite_dir_wps, True)
+        print("---------------------len(self._vehicle_list):",len(self._vehicle_list))
+        self.max_vecs = 1
+        ego_wp = self._map.get_waypoint(self._ego_actor.get_location())
+        if len(self._vehicle_list) < self.max_vecs:
+            same_dir_wps = get_same_dir_lanes(ego_wp)
+            opposite_dir_wps = get_opposite_dir_lanes(ego_wp)
+            self._add_road_vecs(ego_wp, same_dir_wps, opposite_dir_wps, False)
+        if self.frame > 30:
+            for vec in self._vehicle_list:
+                if np.sqrt(vec.get_velocity().x*vec.get_velocity().x+ vec.get_velocity().y * vec.get_velocity().y) < 1:
+                    print("1111")
+                if vec not in self.npcveccontrol:
+                    args = {"desired_velocity":7 ,"desired_acceleration":5,"emergency_param":0.4, "desired_deceleration":5,"safety_time":5,
+                            "lane_changing_dynamic":True,"urge_to_overtake":True,"obey_traffic_lights":True,
+                            "identify_object":True,"obey_speed_limit":True
+                            }
+                    self.npcveccontrol[vec] = NpcVehicleControl(vec, args)
+                    self.npcveccontrol[vec].run_step()
+                else:
+                    self.npcveccontrol[vec].run_step()
         return py_trees.common.Status.RUNNING
+
+
+
+    def update(self):
+        # print("---------------------")
+        try :
+            flag = True
+            logger.info(f"start traffic flow update!!!")
+            ego_wp = self._map.get_waypoint(self._ego_actor.get_location())
+            self.frame += 1
+
+            destroy_indexs = []
+            # 临时变量
+            front_tmpmax = 0
+            opp_front_tmpmax = 0
+            bake_tmpmax = 0
+            opp_bake_tmpmax = 0
+            if self.frame % 5== 0:
+                for i in range(len(self._vehicle_list)):
+                    # ego车与目标车的距离
+                    dist = (self._vehicle_list[i].get_location().distance(ego_wp.transform.location))
+                    wp2loc_dist = self.cal_dis_wp2loc(self._vehicle_list[i])
+
+                    vec_wp = self._map.get_waypoint(
+                        self._vehicle_list[i].get_location()
+                    )
+                    if self.same == 0:
+                        if ego_wp.road_id == vec_wp.road_id and  ego_wp.lane_id * vec_wp.lane_id > 0:
+                            destroy_indexs.append(self._vehicle_list[i].id)
+                            self._destroy_list.append(
+                                carla.command.DestroyActor(self._vehicle_list[i])
+                            )
+                            continue
+
+                    # 如果车辆使出道路，删除处理
+                    if wp2loc_dist > 5:
+                        destroy_indexs.append(self._vehicle_list[i].id)
+                        self._destroy_list.append(
+                            carla.command.DestroyActor(self._vehicle_list[i])
+                        )
+                        continue
+
+                    # 每过一千帧，删除车流车头慢车
+                    if (
+                        flag
+                        and self.frame % 1200 == 0
+                        and dist
+                        > (80 if self.semiMajorAxis < 80 else self.semiMajorAxis * 0.6)
+                    ):
+                        destroy_indexs.append(self._vehicle_list[i].id)
+                        self._destroy_list.append(
+                            carla.command.DestroyActor(self._vehicle_list[i])
+                        )
+                        continue
+
+                    # 断头路处理
+                    # ahead_wp = vec_wp.next(6)
+                    # if len(ahead_wp) == 0:
+                    #     destroy_indexs.append(self._vehicle_list[i].id)
+                    #     self._destroy_list.append(
+                    #         carla.command.DestroyActor(self._vehicle_list[i])
+                    #     )
+                    #     continue
+
+                    if (
+                        dist
+                        > (
+                            self.semiMajorAxis
+                        )
+                        + self.get_speed() * 2
+                    ):  # 如果车辆与给定坐标的距离大于半径
+                        destroy_indexs.append(self._vehicle_list[i].id)
+                        self._destroy_list.append(
+                            carla.command.DestroyActor(self._vehicle_list[i])
+                        )
+                    # 更新前后距离
+                    elif (
+                        self.get_local_location(
+                            self._ego_actor, self._vehicle_list[i].get_location()
+                        ).x
+                        > 0
+                        and dist > front_tmpmax
+                        and ego_wp.road_id == vec_wp.road_id
+                        and ego_wp.lane_id * vec_wp.lane_id > 0
+                    ):
+                        front_tmpmax = dist
+                    elif (
+                        self.get_local_location(
+                            self._ego_actor, self._vehicle_list[i].get_location()
+                        ).x
+                        > 0
+                        and dist > opp_front_tmpmax
+                        and ego_wp.lane_id * vec_wp.lane_id < 0
+                    ):
+                        opp_front_tmpmax = dist
+                    elif (
+                        self.get_local_location(
+                            self._ego_actor, self._vehicle_list[i].get_location()
+                        ).x
+                        < 0
+                        and dist > bake_tmpmax
+                        and ego_wp.lane_id * vec_wp.lane_id > 0
+                    ):
+                        bake_tmpmax = dist
+                    elif (
+                        self.get_local_location(
+                            self._ego_actor, self._vehicle_list[i].get_location()
+                        ).x
+                        < 0
+                        and dist > opp_bake_tmpmax
+                        and ego_wp.lane_id * vec_wp.lane_id < 0
+                    ):
+                        opp_bake_tmpmax = dist
+                self.front_traffic_bound = front_tmpmax + self.semiMajorAxis * 0.1
+                self.front_traffic_bound_opp = opp_front_tmpmax + self.semiMajorAxis * 0.1
+                self.back_traffic_bound = bake_tmpmax + self.semiMajorAxis * 0.1
+                self.back_traffic_bound_opp = opp_bake_tmpmax + self.semiMajorAxis * 0.1
+                if len(destroy_indexs) > 0:
+                    self.client.apply_batch(self._destroy_list)
+                    self._vehicle_list = list(
+                        filter(lambda x: x.id not in destroy_indexs, self._vehicle_list)
+                    )
+
+                # 补充车辆
+                logger.info(f"len vehicle list:{len(self._vehicle_list)}")
+                logger.info(f"front_traffic_bound:{self.front_traffic_bound}")
+                logger.info(f"front_traffic_bound_opp:{self.front_traffic_bound_opp}")
+                logger.info(f"back_traffic_bound:{self.back_traffic_bound}")
+                logger.info(f"back_traffic_bound_opp:{self.back_traffic_bound_opp}")
+
+                if len(self._vehicle_list) < self.max_vecs:
+                    same_dir_wps = get_same_dir_lanes(ego_wp)
+                    opposite_dir_wps = get_opposite_dir_lanes(ego_wp)
+                    self._add_road_vecs(ego_wp, same_dir_wps, opposite_dir_wps, True)
+                logger.info(f"end of traffic flow update!!!")
+                # 车辆规划
+                for i in range(len(self._vehicle_list)):
+                    vec_wp = self._map.get_waypoint(
+                        self._vehicle_list[i].get_location()
+                    )
+                    self.set_speed(vec_wp, i)
+            return py_trees.common.Status.RUNNING
+        except Exception:
+            logger.error(
+                f"===============================An error occurred while update Oasis Traffic Flow!!!!=================================="
+            )
+
+    def get_filter_points(self,ego_vec_road_id):
+        spawn_points_filtered = []
+        num = 0
+        for i, around_spawn_point in enumerate(
+            self.apll_spawn_points
+        ):  # 遍历所有出生点
+            tmp_wpt = self._map.get_waypoint(around_spawn_point.location)
+            diff_road = around_spawn_point.location.distance(
+                self._ego_actor.get_location()
+            )
+            if (
+                diff_road < self.semiMajorAxis
+                and diff_road > self.innerRadius*2
+                and self._map.get_waypoint(around_spawn_point.location).road_id
+                != ego_vec_road_id
+            ):  # 如果出生点与给定坐标的距离小于半径
+                if num < abs(self.max_vecs - len(self._vehicle_list)):
+                    num += 1
+                    spawn_points_filtered.append(
+                        tmp_wpt
+                    )  # 将出生点添加到过滤后的列表中
+                else:
+                    break
+        return spawn_points_filtered
 
     def _add_road_vecs(self, ego_wp, same_dir_wps, opposite_dir_wps, rdm=False):
         spawn_wps = []
@@ -324,12 +443,15 @@ class BAtrafficflow(AtomicBehavior):
 
         speed_dist = self.get_speed()
         for wp in same_dir_wps:
-
+            if self.numberOfVehicles * self.same <= 0:
+                break
             same_num = int(self.numberOfVehicles * self.same / len(same_dir_wps))
             if same_num <1 and self.numberOfVehicles * self.same > 0:
                 same_num = 1
-            innerboundarywp = wp.next(self.innerRadius + 1)
 
+            innerboundarywp = wp.next(self.innerRadius + 1)
+            if len(innerboundarywp) == 0:
+                continue
             next_wp_queue = [innerboundarywp[random.randint(0, len(innerboundarywp) - 1)]]
             # spawn_wps.insert(0, next_wp_queue[0])
             # 控制生成车辆车距
@@ -358,7 +480,7 @@ class BAtrafficflow(AtomicBehavior):
                     dist = temp_next_wp.transform.location.distance(
                         self._ego_actor.get_location()
                     )
-                    print("front spawn vec dist: ", dist)
+
                     if dist > self.semiMajorAxis + speed_dist * 2:
                         continue
                     if not self._check_junction_spawnable(temp_next_wp):
@@ -368,6 +490,8 @@ class BAtrafficflow(AtomicBehavior):
                 next_wp_queue = temp_next_wp_queue
 
             innerboundarywp = wp.previous(self.innerRadius + 1)
+            if len(innerboundarywp) <= 0:
+                continue
             prev_wp_queue = [innerboundarywp[random.randint(0, len(innerboundarywp) - 1)]]
             # spawn_wps.insert(0, prev_wp_queue[0])
             offset = 0
@@ -380,9 +504,8 @@ class BAtrafficflow(AtomicBehavior):
                     temp_prev_wps = temp_wp.previous(
                         self.back_traffic_bound/2
                         + self._road_spawn_dist
-                        + random.randint(0, 3) * 2
+                        + random.randint(0, 3)
                         + speed_dist * 2
-                        + offset
                     )
                     num_wps = len(temp_prev_wps)
                     if num_wps <= 0:
@@ -408,6 +531,8 @@ class BAtrafficflow(AtomicBehavior):
             opposite_num = int(self.numberOfVehicles * self.opposite / len(opposite_dir_wps))
             if opposite_num < 1 and self.numberOfVehicles * self.opposite > 0:
                 opposite_num = 1
+            elif self.numberOfVehicles *     self.opposite <= 0:
+                break
             innerboundarywp = wp.previous(self.innerRadius + 1)
             prev_wp_queue = [innerboundarywp[random.randint(0, len(innerboundarywp) - 1)]]
             # opp_spawn_wps.insert(0, prev_wp_queue[0])
@@ -420,9 +545,6 @@ class BAtrafficflow(AtomicBehavior):
                     temp_prev_wps = temp_wp.previous(
                         self.front_traffic_bound_opp
                         + self._road_spawn_dist
-                        + random.randint(0, 4) * 3
-                        + speed_dist * 3
-                        + offset
                     )
                     num_wps = len(temp_prev_wps)
                     if num_wps <= 0:
@@ -443,36 +565,8 @@ class BAtrafficflow(AtomicBehavior):
                     temp_prev_wp_queue.append(temp_prev_wp)
                     opp_spawn_wps.append(temp_prev_wp)
                 prev_wp_queue = temp_prev_wp_queue
-        spawn_points_filtered = []
-        num = 0
-        # if len(spawn_wps) + len(opp_spawn_wps) < self.max_vecs:
-        #     for i, around_spawn_point in enumerate(
-        #         self.apll_spawn_points
-        #     ):  # 遍历所有出生点
-        #         tmp_wpt = self._map.get_waypoint(around_spawn_point.location)
-        #         diff_road = around_spawn_point.location.distance(
-        #             self._ego_actor.get_location()
-        #         )
-        #         if (
-        #             diff_road < self.semiMajorAxis
-        #             and diff_road > self.semiMajorAxis * 0.5
-        #             and self._map.get_waypoint(around_spawn_point.location).road_id
-        #             != same_dir_wps[0].road_id
-        #         ):  # 如果出生点与给定坐标的距离小于半径
-        #             if num < abs(self.max_vecs - len(self._vehicle_list)):
-        #                 print(
-        #                     "spawn points to ego dist:",
-        #                     around_spawn_point.location.distance(
-        #                         self._ego_actor.get_location()
-        #                     ),
-        #                 )
-        #                 num += 1
-        #                 spawn_points_filtered.append(
-        #                     tmp_wpt
-        #                 )  # 将出生点添加到过滤后的列表中
-        #             else:
-        #                 break
-        # print("len(spawn_points_filtered):", len(spawn_points_filtered))
+        if len(spawn_wps) >0:
+            print("===================len of spawn_wps:====", len(spawn_wps) )
         if len(spawn_wps) > 0 or len(opp_spawn_wps) > 0:
             random.shuffle(spawn_wps)
             random.shuffle(opp_spawn_wps)
@@ -484,7 +578,7 @@ class BAtrafficflow(AtomicBehavior):
             spawn_wps_index_second = 100
             opp_spawn_wps_index_first = 0
             opp_spawn_wps_index_second = 100
-            while True:
+            while loop < 4:
                 spawn_wps_index_second = (
                     int(np.ceil(0.6 * (self.max_vecs - len(self._vehicle_list))))
                     if len(spawn_wps)
@@ -509,20 +603,25 @@ class BAtrafficflow(AtomicBehavior):
                     opp_spawn_wps_index_first = opp_spawn_wps_index_second
                 if (
                     len(gl_spawn_wps) > self.max_vecs - len(self._vehicle_list) + 1
-                    or loop > 5
+
                 ):
                     break
                 loop += 1
-            gl_spawn_wps += spawn_points_filtered[
-                : (
-                    int(np.floor(self.max_vecs * 0.4))
-                    if len(spawn_wps) > np.floor(self.max_vecs * 0.4)
-                    else int((len(spawn_wps) - 1))
-                )
-            ]
+
+            # 同方向与反方向补充出生点小于最大车辆数
+            if len(self._vehicle_list) + len(gl_spawn_wps) < self.max_vecs:
+                gap = self.max_vecs - (len(self._vehicle_list) + len(gl_spawn_wps))
+                if gap > 10:
+                    gap = 10
+                spawn_points_filtered = self.get_filter_points(ego_wp.road_id)
+                # 补充出生点大于0
+                if len(spawn_points_filtered) > 0:
+                    gl_spawn_wps += spawn_points_filtered[
+                        : len(spawn_points_filtered) - 1 if  gap > len(spawn_points_filtered) else gap - 1
+                        ]
             tmp_vecs = self._spawn_actors(gl_spawn_wps)
             for i in tmp_vecs:
-                self._tm.set_desired_speed(i, 40)
+                self._tm.set_desired_speed(i, 10)
                 # self._tm.vehicle_percentage_speed_difference(i, -10)
                 # if self.get_speed() > 5:
                 #     self._tm.set_desired_speed(
@@ -549,8 +648,9 @@ class BAtrafficflow(AtomicBehavior):
         spawn_wps = []
         for wp in road_wps:
             # Front spawn points
-
             innerboundarywp = wp.next( self.innerRadius + 1 )
+            if len(innerboundarywp) <= 0:
+                continue
             next_wp_queue = [ innerboundarywp[ random.randint(0,len(innerboundarywp) - 1 ) ] ]
             spawn_wps.insert(0, next_wp_queue[0])
             for _ in range(self._road_front_vehicles):
@@ -580,7 +680,6 @@ class BAtrafficflow(AtomicBehavior):
 
             prev_wp_queue = [innerboundarywp[random.randint(0, len(innerboundarywp) - 1)]]
             spawn_wps.insert(0, prev_wp_queue[0])
-            # print("spawn_wps:", spawn_wps)
             for _ in range(self._road_back_vehicles):
                 temp_prev_wp_queue = []
                 for temp_wp in prev_wp_queue:
@@ -616,7 +715,7 @@ class BAtrafficflow(AtomicBehavior):
             # self._tm.set_desired_speed(i, float(random.randint(int(self.max_speed*0.5), int(self.max_speed))))
             self._tm.vehicle_percentage_speed_difference(i, -10)
         dur_time = time.time() - start
-        print("spawn time:", dur_time)
+
 
     def _spawn_actors(self, spawn_wps, ego_dist=0):
         """Spawns several actors in batch"""
@@ -688,7 +787,7 @@ class BAtrafficflow(AtomicBehavior):
         self._tm.auto_lane_change(actor, self._vehicle_lane_change)
         self._tm.update_vehicle_lights(actor, self._vehicle_lights)
         self._tm.distance_to_leading_vehicle(
-            actor, self._vehicle_leading_distance + random.randint(0, 4) * 3
+            actor, self._vehicle_leading_distance + random.randint(2, 4) * 3
         )
         self._tm.vehicle_lane_offset(actor, self._vehicle_offset)
 
@@ -705,10 +804,17 @@ class BAtrafficflow(AtomicBehavior):
 
     def terminate(self, new_status):
         """Destroy all actors"""
+
+        destroy_list = []
+        for i in self._vehicle_list:
+            if i:
+                destroy_list.append( carla.command.DestroyActor(i) )
+        self.client.apply_batch(destroy_list)
+
         all_actors = list(self._actors_speed_perc)
         for actor in list(all_actors):
             self._destroy_actor(actor)
-        super(BAtrafficflow, self).terminate(new_status)
+        super(OasisTrafficflow, self).terminate(new_status)
 
     def _calculate_fake_junctions(self, debug=False):
         """Calculate the fake junctions"""
@@ -798,10 +904,10 @@ class BAtrafficflow(AtomicBehavior):
             if fake_junction:
                 self._fake_junction_ids.append(j)
 
-        if debug:
-            print("Fake junction lanes: ", self._fake_junction_lanes)
-            print("Fake junction roads: ", self._fake_junction_roads)
-            print("Fake junction ids: ", self._fake_junction_ids)
+        # if debug:
+        #     print("Fake junction lanes: ", self._fake_junction_lanes)
+        #     print("Fake junction roads: ", self._fake_junction_roads)
+        #     print("Fake junction ids: ", self._fake_junction_ids)
 
     def _check_junction_spawnable(self, wp):
         if wp.is_junction:
@@ -814,3 +920,5 @@ class BAtrafficflow(AtomicBehavior):
             else:
                 return False
         return True
+
+

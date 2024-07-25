@@ -964,16 +964,19 @@ class CarlaDataProvider(object):  # pylint: disable=too-many-public-methods
                     break
 
             if spawn_point:
-                batch.append(
-                    SpawnActor(blueprint, spawn_point).then(
-                        SetAutopilot(
-                            FutureActor,
-                            autopilot,
-                            CarlaDataProvider._traffic_manager_port,
-                        )
-                    ).then(Velocity(FutureActor, CarlaDataProvider.trans_velocity(veloc + random.randint(0,4)*3, spawn_point.rotation.yaw  ) ))
-                )
-
+                if autopilot:
+                    batch.append(
+                        SpawnActor(blueprint, spawn_point).then(
+                            SetAutopilot(
+                                FutureActor,
+                                autopilot,
+                                CarlaDataProvider._traffic_manager_port,
+                            )
+                        ).then(Velocity(FutureActor, CarlaDataProvider.trans_velocity(veloc + random.randint(0,4)*3, spawn_point.rotation.yaw  ) ))
+                    )
+                else:
+                    batch.append(
+                        SpawnActor(blueprint, spawn_point) )
         actors = CarlaDataProvider.handle_actor_batch(batch, tick)
         for actor in actors:
             if actor is None:

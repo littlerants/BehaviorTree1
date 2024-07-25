@@ -152,9 +152,8 @@ class ScenarioManager(object):
             if timestamp:
                 self._tick_scenario(timestamp)
             if flag:
-                flag = False
-                self._set_spector(self.ego_vehicles[0].get_location(), world)
                 # flag = False
+                self._set_spector(self.ego_vehicles[0].get_location(), world)
         self.cleanup()
 
         self.end_system_time = time.time()

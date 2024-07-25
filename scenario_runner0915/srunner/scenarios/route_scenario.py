@@ -38,9 +38,8 @@ from srunner.scenariomanager.scenarioatomics.atomic_criteria import (CollisionTe
                                                                      MinimumSpeedRouteTest)
 
 from srunner.scenarios.basic_scenario import BasicScenario
-from srunner.scenarios.background_activity import BackgroundBehavior
-from srunner.scenarios.BAtrafficflow import BAtrafficflow
-# from srunner.scenarios.BAtrafficflow_bake import BAtrafficflow
+# from srunner.scenarios.background_activity import BackgroundBehavior
+
 
 from srunner.scenariomanager.weather_sim import RouteWeatherBehavior
 from srunner.scenariomanager.lights_sim import RouteLightsBehavior
@@ -48,6 +47,9 @@ from srunner.scenariomanager.timer import RouteTimeoutBehavior
 
 from srunner.tools.route_parser import RouteParser, DIST_THRESHOLD
 from srunner.tools.route_manipulation import interpolate_trajectory
+
+from srunner.scenarios.BAtrafficflow import OasisTrafficflow
+# from srunner.scenarios.BAtrafficflow_bake import BAtrafficflow
 # from vtd_adv_lib.oasis_manager01 import ADV_Manager
 # from vtd_adv_lib_529.vtd_manager_529_oasis_onnx import ADV_Manager
 from adv_lib.adv_manager_oasis_onnx import ADV_Manager
@@ -296,7 +298,7 @@ class RouteScenario(BasicScenario):
                 scenario_behaviors.append(scenario.behavior_tree)
                 blackboard_list.append([scenario.config.route_var_name,
                                         scenario.config.trigger_points[0].location])
-
+        behavior.add_children(scenario_behaviors)
         # Add the behavior that manages the scenario trigger conditions
         # scenario_triggerer = ScenarioTriggerer(
         #     self.ego_vehicles[0], self.route, blackboard_list, scenario_trigger_distance)
@@ -308,19 +310,19 @@ class RouteScenario(BasicScenario):
         traffic_follow =  {
             "name": "traffic_xxx",
             "centralObject": "ego_vehicle",  # 生效区域
-            "semiMajorAxis": "100",  # 生成半径
+            "semiMajorAxis": "200",  # 生成半径
             "innerRadius": "0",  # 内半径
-            "numberOfVehicles": "10",  # 车辆数量
+            "numberOfVehicles": "50",  # 车辆数量
             "numberOfPedestrian": "40",  # 行人数量
             # 车辆比例
             "trafficDistribution": {
-                "car": "40",  # 乘用车
+                "car": "48",  # 乘用车
                 "van": "20",  # 厢式货车
                 "truck": "20",  # 卡车
                 "trailer": "0",  # 拖车
                 "semitrailer": "0",  # 半挂车
                 "bus": "0",  # 公共汽车
-                "motorbike": "10",  # 摩托车
+                "motorbike": "2",  # 摩托车
                 "bicycle": "0",  # 自行车
                 "special_vehicles": "10"  # 特种车辆
             },
@@ -341,16 +343,19 @@ class RouteScenario(BasicScenario):
             # 对抗模型
             "adversarialModel": {
                 # 对抗模型开关 true/false 仅当值为true时有下面三个字段和值
-                "adversarialModelEnable": "true",
+                "adversarialModelEnable": "False",
                 "effectRange": "100",  # 作用范围
                 "effectDuration": "10",  # 作用时间
                 "adversarialLevel": "0.5"  # 激进程度
             }
         }
 
-        behavior.add_child(BAtrafficflow(self.ego_vehicles[0], tf_param = traffic_follow, name="BAtrifficflow"))
-        # behavior.add_child(ADV_Manager(self.ego_vehicles[0], name="ADV_Manager"))
-        behavior.add_children(scenario_behaviors)
+
+        # if traffic_follow['adversarialModel']['adversarialModelEnable']:
+        #     traffic_follow['numberOfVehicles'] = 2
+        #     behavior.add_child(ADV_Manager(self.ego_vehicles[0], name="ADV_Manager"))
+        behavior.add_child(OasisTrafficflow(self.ego_vehicles[0], tf_param=traffic_follow, name="BAtrifficflow"))
+
         return behavior
 
     def _create_test_criteria(self):

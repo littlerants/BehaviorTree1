@@ -1710,7 +1710,7 @@ class AdvWaypointFollower:
         pass
 
     def update(self,adv_action, action_marking, acc=0, flag = True):
-        if adv_action in ['LANE_LEFT', 'LANE_RIGHT'] and action_marking  in ['']:
+        if adv_action in ['LANE_LEFT', 'LANE_RIGHT','LEFT_2','RIGHT_2'] and action_marking  in ['']:
             self.get_plan(adv_action)
             self._apply_local_planner()
 
@@ -1791,9 +1791,3 @@ class AdvPlanner(AdvWaypointFollower):
     def update(self,adv_action,action_marking,acc = 0):
         print("a--------dv:",adv_action,action_marking,acc)
         super(AdvPlanner, self).update(adv_action,action_marking,acc)
-
-
-
-
-
-
