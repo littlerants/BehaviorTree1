@@ -81,6 +81,8 @@ class LocalPlanner(object):
 
         # Base parameters
         self._dt =  self._world.get_settings().fixed_delta_seconds
+        if self._dt is None:
+            self._dt = 0.03
         self._target_speed = 0.0  # Km/h
         self._sampling_radius = 4.5
         if "ego_vehicle" in self._vehicle.attributes.get("role_name"):
@@ -292,7 +294,7 @@ class LocalPlanner(object):
             self.target_waypoint, self.target_road_option = self._waypoints_queue[0]
             control = self._vehicle_controller.run_step(self._target_speed, self.target_waypoint)
 
-        if True:
+        if False:
             # draw_waypoints(self._vehicle.get_world(), self._waypoints_queue, 5.0)
             draw_waypoints(self._vehicle.get_world(), [self.target_waypoint], 1.0)
 

@@ -207,7 +207,7 @@ def is_within_distance(
             )
         )
     )
-    print("calc angle: {}  ".format(angle))
+    # print("calc angle: {}  ".format(angle))
     return min_angle < angle < max_angle
 
 

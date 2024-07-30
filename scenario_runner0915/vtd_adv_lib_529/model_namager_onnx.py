@@ -1,6 +1,6 @@
 
 import os
-from gym_sumo.gym_sumo import utils
+from gym_sumo import utils
 import onnxruntime
 # 对抗模型初始化与加载类
 class Model():

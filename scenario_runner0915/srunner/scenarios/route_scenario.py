@@ -312,7 +312,7 @@ class RouteScenario(BasicScenario):
             "centralObject": "ego_vehicle",  # 生效区域
             "semiMajorAxis": "200",  # 生成半径
             "innerRadius": "0",  # 内半径
-            "numberOfVehicles": "50",  # 车辆数量
+            "numberOfVehicles": "10",  # 车辆数量
             "numberOfPedestrian": "40",  # 行人数量
             # 车辆比例
             "trafficDistribution": {
@@ -343,7 +343,7 @@ class RouteScenario(BasicScenario):
             # 对抗模型
             "adversarialModel": {
                 # 对抗模型开关 true/false 仅当值为true时有下面三个字段和值
-                "adversarialModelEnable": "False",
+                "adversarialModelEnable": False,
                 "effectRange": "100",  # 作用范围
                 "effectDuration": "10",  # 作用时间
                 "adversarialLevel": "0.5"  # 激进程度
@@ -351,9 +351,9 @@ class RouteScenario(BasicScenario):
         }
 
 
-        # if traffic_follow['adversarialModel']['adversarialModelEnable']:
-        #     traffic_follow['numberOfVehicles'] = 2
-        #     behavior.add_child(ADV_Manager(self.ego_vehicles[0], name="ADV_Manager"))
+        if traffic_follow['adversarialModel']['adversarialModelEnable']:
+            traffic_follow['numberOfVehicles'] = 2
+            behavior.add_child(ADV_Manager(self.ego_vehicles[0], name="ADV_Manager"))
         behavior.add_child(OasisTrafficflow(self.ego_vehicles[0], tf_param=traffic_follow, name="BAtrifficflow"))
 
         return behavior

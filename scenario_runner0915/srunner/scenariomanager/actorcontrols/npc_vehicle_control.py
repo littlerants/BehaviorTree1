@@ -181,7 +181,7 @@ class NpcVehicleControl(BehaviorAgent):
         if self._offset_updated:
             self._offset_updated = False
             self.update_offset(self._offset)
-
+        # print("self._target_speed1:", self._target_speed)
         # If target speed is negavite, raise an exception
         if self._target_speed < 0:
             raise NotImplementedError("Negative target speeds are not yet supported")
@@ -201,6 +201,7 @@ class NpcVehicleControl(BehaviorAgent):
             self._init_speed = False
         elif self._target_speed_updated:
             self._target_speed_updated = False
+
             self.set_target_speed(self._target_speed)
             control = super().run_step()
         else:
@@ -215,4 +216,7 @@ class NpcVehicleControl(BehaviorAgent):
             #     )
             #     self._vehicle.apply_ackermann_control(ackermann_control)
             # else:
-            self._vehicle.apply_control(control)
+            # print("driver vec control: ",self._vehicle.id, control )
+            # control.throttle = 1
+            # self._vehicle.apply_control(control)
+            return  control
