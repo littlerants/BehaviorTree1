@@ -307,24 +307,24 @@ class RouteScenario(BasicScenario):
         # Add the Background Activity
         # behavior.add_child(BackgroundBehavior(self.ego_vehicles[0], name="BackgroundActivity"))
 
-        traffic_follow =  {
+        traffic_follow = {
             "name": "traffic_xxx",
             "centralObject": "ego_vehicle",  # 生效区域
-            "semiMajorAxis": "200",  # 生成半径
-            "innerRadius": "0",  # 内半径
-            "numberOfVehicles": "10",  # 车辆数量
+            "semiMajorAxis": "100",  # 生成半径
+            "innerRadius": "10",  # 内半径
+            "numberOfVehicles": "50",  # 车辆数量
             "numberOfPedestrian": "40",  # 行人数量
             # 车辆比例
             "trafficDistribution": {
-                "car": "48",  # 乘用车
+                "car": "60",  # 乘用车
                 "van": "20",  # 厢式货车
                 "truck": "20",  # 卡车
                 "trailer": "0",  # 拖车
                 "semitrailer": "0",  # 半挂车
                 "bus": "0",  # 公共汽车
-                "motorbike": "2",  # 摩托车
+                "motorbike": "0",  # 摩托车
                 "bicycle": "0",  # 自行车
-                "special_vehicles": "10"  # 特种车辆
+                "special_vehicles": "0"  # 特种车辆
             },
             # 行驶方向分布
             "directionOfTravelDistribution": {

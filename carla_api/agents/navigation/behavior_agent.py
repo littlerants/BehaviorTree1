@@ -406,7 +406,10 @@ class BehaviorAgent(BasicAgent):
 
         ego_vehicle_loc = self._vehicle.get_location()
         ego_vehicle_wp = self._map.get_waypoint(ego_vehicle_loc)
-
+        ego_speed = self._vehicle.get_velocity()
+        ego_speed = np.sqrt(np.square(ego_speed.x)  + np.square(ego_speed.y))
+        self._behavior.braking_distance = 5 + ego_speed*2
+        print("------self._behavior.braking_distance:",self._behavior.braking_distance)
         # 1: Red lights and stops behavior
         if self.traffic_light_manager():
             return self.emergency_stop()

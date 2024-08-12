@@ -633,7 +633,7 @@ def main():
 
     if arguments.route:
         arguments.reloadWorld = True
-    arguments.sync = True
+    # arguments.sync = True
     if arguments.agent:
         arguments.sync = True
 

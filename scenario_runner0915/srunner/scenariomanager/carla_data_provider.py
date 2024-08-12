@@ -908,7 +908,9 @@ class CarlaDataProvider(object):  # pylint: disable=too-many-public-methods
         rolename="scenario",
         attribute_filter=None,
         tick=True,
-        veloc=5
+        veloc=5,
+        ego_actor = None,
+        traffic_flow_nums = 0
     ):
         """
         Simplified version of "request_new_actors". This method also create
@@ -936,7 +938,7 @@ class CarlaDataProvider(object):  # pylint: disable=too-many-public-methods
             model = models[i]
             # model = random.choice(models)
             blueprint = CarlaDataProvider.create_blueprint(
-                model, rolename, attribute_filter=attribute_filter
+                model, rolename + str(traffic_flow_nums + i).zfill(4), attribute_filter=attribute_filter
             )
 
             if random_location:
@@ -972,7 +974,7 @@ class CarlaDataProvider(object):  # pylint: disable=too-many-public-methods
                                 autopilot,
                                 CarlaDataProvider._traffic_manager_port,
                             )
-                        ).then(Velocity(FutureActor, CarlaDataProvider.trans_velocity(veloc + random.randint(0,4)*3, spawn_point.rotation.yaw  ) ))
+                        ).then(Velocity(FutureActor, CarlaDataProvider.trans_velocity(veloc , spawn_point.rotation.yaw  ) ))
                     )
                 else:
                     batch.append(

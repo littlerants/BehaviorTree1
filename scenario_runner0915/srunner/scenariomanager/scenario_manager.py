@@ -125,7 +125,7 @@ class ScenarioManager(object):
         else:
             # location.x -= 30
             bv_transform = carla.Transform(
-                transform.location + location + carla.Location(z=100),
+                transform.location + location + carla.Location(z=120),
                 carla.Rotation(yaw=0, pitch=-90),
             )
         spectator.set_transform(bv_transform)
